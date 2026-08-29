@@ -5,9 +5,32 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --color-brand-900: #14532D;
+  --color-brand-700: #15803D;
+  --color-brand-hover: #166534;
+  --color-brand-50: #ECFDF3;
+  --color-brand-100: #DCFCE7;
+  
+  --color-app-bg: #F8F7F2;
+  --color-surface-main: #FFFFFF;
+  --color-surface-subtle: #F4F6F3;
+  
+  --color-text-primary: #17211B;
+  --color-text-secondary: #5E6B63;
+  --color-text-muted: #7A857E;
+  --color-border-subtle: #D9E1DB;
+  
+  --color-warning-main: #C96A08;
+  --color-warning-surface: #FFF6E5;
+  
+  --color-danger-main: #B42318;
+  --color-danger-surface: #FEF3F2;
+
+  --color-header-bg: #123524;
+
+  --color-background: var(--color-app-bg);
+  --color-foreground: var(--color-text-primary);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);

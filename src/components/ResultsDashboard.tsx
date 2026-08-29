@@ -8,11 +8,37 @@ import {
   formatINR, 
   getSchemeDetails 
 } from "@/lib/calculations";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { AlertTriangle, CheckCircle2, TrendingDown, TrendingUp, Info } from "lucide-react";
+import { AlertTriangle, CheckCircle2, TrendingDown, Info, ArrowDown, MapPin, Building2, TrendingUp, AlertCircle, RefreshCw, Pencil } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
+import { Button } from "./ui/button";
+
+import { useEffect, useState } from "react";
+import { LiveEvidence, EvidenceItem } from "@/types/evidence";
+import { Loader2 } from "lucide-react";
+
+const EvidenceBadge = ({ item }: { item?: EvidenceItem | null }) => {
+  if (!item) {
+    return (
+      <Badge variant="outline" className="text-[10px] bg-slate-50 text-slate-500 border-slate-200 uppercase font-semibold">
+        Data Unavailable
+      </Badge>
+    );
+  }
+  const isLimited = item.label.includes("No relevant mapped POIs") || item.value?.zone10 === 0 || item.value?.zone10?.count === 0;
+  return (
+    <div className="flex flex-col items-end gap-0.5">
+      <Badge variant="outline" className={`text-[10px] uppercase font-semibold shadow-sm ${isLimited ? 'bg-slate-50 text-slate-600 border-slate-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
+        {isLimited ? 'Limited Evidence' : 'Live Evidence'}
+      </Badge>
+      <span className="text-[9px] text-slate-400 capitalize">
+        {item.source} • {item.confidence} Conf.
+      </span>
+    </div>
+  );
+};
 
 interface ResultsDashboardProps {
   data: z.infer<typeof formSchema>;
@@ -20,14 +46,29 @@ interface ResultsDashboardProps {
 }
 
 export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
-  // 1. Core Calculations
+  const [evidence, setEvidence] = useState<LiveEvidence | null>(null);
+  const [evidenceLoading, setEvidenceLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    setEvidenceLoading(true);
+    import("@/app/actions/evidence").then(({ getEvidenceAction }) => {
+      getEvidenceAction(data.village, data.district, data.state)
+        .then(res => { if (active) setEvidence(res); })
+        .catch(err => console.error(err))
+        .finally(() => { if (active) setEvidenceLoading(false); });
+    });
+    return () => { active = false; };
+  }, [data.village, data.district, data.state]);
+  // 1. Core Calculations - UNCANGED
   const projectCost = calculateProjectCost(data.marginCapital);
   const scheme = getSchemeDetails(projectCost);
+  const maxEligibleLoan = Math.min(projectCost * 0.90, scheme.maxLoan);
   
   const normalEconomics = calculateEconomics(data, 1.0, 1.0);
   const stressEconomics = calculateEconomics(data, 0.8, 1.15); // 20% yield drop, 15% feed cost increase
 
-  // Decision Logic
+  // Decision Logic - UNCHANGED
   let decision: "PROCEED" | "MODIFY" | "HIGH RISK" = "HIGH RISK";
   if (normalEconomics.postRepaymentSurplus > 0) {
     if (stressEconomics.postRepaymentSurplus > 0) {
@@ -37,7 +78,7 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
     }
   }
 
-  // Cost per litre for PMV
+  // Cost per litre for PMV - UNCHANGED
   const costPerLitreNormal = normalEconomics.totalOperatingCost / normalEconomics.annualMilkProduction;
   const marginPerLitre = data.milkPrice - costPerLitreNormal;
   
@@ -45,349 +86,539 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
   if (marginPerLitre > 15) pricingPosition = "High Margin";
   else if (marginPerLitre < 5) pricingPosition = "Low Margin";
 
+  // Eligibility vs Viability calculations
+  // Preserving the 25% scale reduction heuristic logic for MODIFY case
+  const suggestedProjectScale = decision === 'PROCEED' ? 1.0 : 0.75;
+  const suggestedProjectCost = projectCost * suggestedProjectScale;
+  const suggestedLoan = maxEligibleLoan * suggestedProjectScale;
+
   return (
-    <div className="space-y-8 max-w-5xl mx-auto pb-12">
-      {/* 1. Final Decision */}
-      <Card className={`border-l-8 ${decision === 'PROCEED' ? 'border-l-green-600' : decision === 'MODIFY' ? 'border-l-amber-500' : 'border-l-red-600'}`}>
-        <CardHeader>
-          <div className="flex justify-between items-start">
+    <div className="space-y-8 max-w-4xl mx-auto pb-16 text-slate-800">
+      
+      {/* Mobile Top Actions */}
+      <div className="flex md:hidden justify-between items-center bg-white p-3 rounded-lg border border-slate-200 shadow-sm mb-4">
+        <Button variant="ghost" size="sm" onClick={onReset} className="text-slate-600">
+          <Pencil className="w-4 h-4 mr-2" /> Adjust
+        </Button>
+        <Button variant="outline" size="sm" onClick={onReset} className="text-slate-600">
+          <RefreshCw className="w-4 h-4 mr-2" /> New
+        </Button>
+      </div>
+
+      {/* A. Executive Decision */}
+      <Card className={`overflow-hidden border border-slate-200 shadow-sm ${
+        decision === 'PROCEED' ? 'border-t-4 border-t-emerald-600' : 
+        decision === 'MODIFY' ? 'border-t-4 border-t-amber-500' : 
+        'border-t-4 border-t-red-600'
+      }`}>
+        <CardContent className="p-6 md:p-8">
+          <div className="flex flex-col md:flex-row justify-between md:items-start gap-4">
             <div>
-              <CardDescription className="uppercase tracking-wider font-semibold text-muted-foreground">GramVyapar AI Recommendation</CardDescription>
-              <CardTitle className="text-4xl mt-2 flex items-center gap-3">
-                {decision}
-                {decision === 'PROCEED' && <CheckCircle2 className="w-8 h-8 text-green-600" />}
+              <div className="flex items-center gap-2 mb-2">
+                <Badge variant="outline" className="text-slate-500 font-normal uppercase tracking-wider text-xs">
+                  GramVyapar Executive Decision
+                </Badge>
+              </div>
+              <h2 className="text-3xl font-bold flex items-center gap-3">
+                {decision === 'PROCEED' && <CheckCircle2 className="w-8 h-8 text-emerald-600" />}
                 {decision === 'MODIFY' && <AlertTriangle className="w-8 h-8 text-amber-500" />}
-                {decision === 'HIGH RISK' && <TrendingDown className="w-8 h-8 text-red-600" />}
-              </CardTitle>
+                {decision === 'HIGH RISK' && <AlertCircle className="w-8 h-8 text-red-600" />}
+                <span className={
+                  decision === 'PROCEED' ? 'text-emerald-800' : 
+                  decision === 'MODIFY' ? 'text-amber-800' : 
+                  'text-red-800'
+                }>{decision}</span>
+              </h2>
+              <p className="mt-4 text-slate-600 text-lg leading-relaxed max-w-2xl">
+                {decision === 'PROCEED' && `You are financially eligible for a ${formatINR(maxEligibleLoan)} loan. The proposed dairy plan shows strong resilience even under stress scenarios. Proceed with the application.`}
+                {decision === 'MODIFY' && `You are financially eligible for a ${formatINR(maxEligibleLoan)} loan under the ${scheme.name}, but the proposed dairy plan becomes vulnerable when milk yield falls and feed costs rise. Consider reducing the initial investment or herd size.`}
+                {decision === 'HIGH RISK' && `The current financial structure is unsustainable. Operating surplus does not cover the required loan repayments for the proposed scale.`}
+              </p>
+              
+              <div className="flex items-center gap-4 mt-6 text-sm text-slate-500">
+                <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {data.village}, {data.district}</span>
+                <span className="flex items-center gap-1"><Building2 className="w-4 h-4" /> Dairy Farming ({data.animalCount} Animals)</span>
+              </div>
             </div>
-            <button onClick={onReset} className="text-sm text-primary hover:underline font-medium">
-              Start New Assessment
-            </button>
+            
+            <div className="hidden md:flex flex-col gap-2">
+              <Button variant="outline" onClick={onReset} className="border-slate-300 text-slate-700 hover:bg-slate-50">
+                <Pencil className="w-4 h-4 mr-2" /> Adjust Assessment
+              </Button>
+              <Button variant="ghost" onClick={onReset} className="text-slate-500">
+                Start New
+              </Button>
+            </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          <p className="text-lg text-muted-foreground">
-            {decision === 'PROCEED' && `You are financially eligible for a ${formatINR(scheme.maxLoan)} loan. The proposed dairy plan shows strong resilience even under stress scenarios. Proceed with the application.`}
-            {decision === 'MODIFY' && `You are financially eligible for a ${formatINR(scheme.maxLoan)} loan under the ${scheme.name}, but the proposed dairy plan becomes vulnerable when milk yield falls and feed costs rise. Consider reducing the initial investment or herd size.`}
-            {decision === 'HIGH RISK' && `The current financial structure is unsustainable. Operating surplus does not cover the required loan repayments for the proposed scale.`}
-          </p>
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* 2. Financial Eligibility */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Financial Eligibility</CardTitle>
-            <CardDescription>Based on ₹{data.marginCapital.toLocaleString()} margin</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Calculated Project Cost</span>
-              <span className="font-semibold">{formatINR(projectCost)}</span>
+      {/* B. Eligibility vs Viability */}
+      <Card className="border border-slate-200 shadow-sm bg-white overflow-hidden">
+        <CardHeader className="bg-slate-50 border-b border-slate-100 pb-4">
+          <CardTitle className="text-lg text-slate-800">Eligibility vs Viability</CardTitle>
+          <p className="text-sm text-slate-500 mt-1">Maximum borrowing eligibility is not always the same as optimal capital deployment.</p>
+        </CardHeader>
+        <CardContent className="p-6 md:p-8 space-y-8">
+          <div>
+            <div className="flex justify-between items-end mb-2">
+              <span className="text-sm font-medium text-slate-600">Maximum Eligible Project Size</span>
+              <span className="text-xl font-bold tabular-nums text-slate-800">{formatINR(projectCost)}</span>
             </div>
-            <Separator />
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Applicable Scheme</span>
-                <Badge variant={scheme.isEligible ? "default" : "destructive"}>{scheme.name}</Badge>
+            <div className="h-4 w-full bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-full bg-slate-300 w-full" />
+            </div>
+            <p className="text-xs text-slate-400 mt-1 text-right">Max capacity based on margin</p>
+          </div>
+
+          <div>
+            <div className="flex justify-between items-end mb-2">
+              <span className="text-sm font-medium text-emerald-800 flex items-center gap-2">
+                Prototype Suggested Project Size
+                <Badge variant="outline" className="text-[10px] uppercase bg-emerald-50 text-emerald-700 border-emerald-200">Recommendation</Badge>
+              </span>
+              <span className="text-xl font-bold tabular-nums text-emerald-700">{formatINR(suggestedProjectCost)}</span>
+            </div>
+            <div className="h-4 w-full bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-full bg-emerald-600 transition-all" style={{ width: `${suggestedProjectScale * 100}%` }} />
+            </div>
+            <p className="text-xs text-emerald-600/70 mt-1 text-right">Scaled to survive stress heuristic</p>
+          </div>
+
+          <div className="bg-slate-50 rounded-lg p-4 border border-slate-100">
+            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Corresponding Loan Amounts</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="text-xs text-slate-500 mb-1">Max Eligible Loan</div>
+                <div className="font-semibold tabular-nums text-slate-800">{formatINR(maxEligibleLoan)}</div>
               </div>
-              {scheme.isEligible && (
-                <>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Max Loan Amount</span>
-                    <span className="font-semibold">{formatINR(Math.min(projectCost * 0.90, scheme.maxLoan))}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Interest Rate</span>
-                    <span className="font-semibold">{scheme.interestRate}% p.a.</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Tenure</span>
-                    <span className="font-semibold">{scheme.tenureYears} Years</span>
-                  </div>
-                </>
-              )}
+              <div>
+                <div className="text-xs text-emerald-700 mb-1">Suggested Indicative Loan</div>
+                <div className="font-semibold tabular-nums text-emerald-700">{formatINR(suggestedLoan)}</div>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+          
+          {decision === 'MODIFY' && (
+            <Alert className="bg-amber-50 border-amber-200">
+              <Info className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800 text-sm ml-2">
+                You may qualify for the maximum project structure, but a smaller initial project may reduce downside exposure.
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
 
-        {/* 3. Eligibility vs Viability */}
-        <Card className="bg-muted/30">
-          <CardHeader>
-            <CardTitle>Eligibility vs Viability</CardTitle>
-            <CardDescription>Balancing capacity with realistic deployment</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-col gap-1">
-              <span className="text-sm text-muted-foreground">Maximum Funding Capacity</span>
-              <span className="text-2xl font-bold">{formatINR(scheme.maxLoan)}</span>
+      {/* C. Financial Eligibility Pipeline */}
+      <Card className="border border-slate-200 shadow-sm bg-white">
+        <CardHeader className="bg-slate-50 border-b border-slate-100 pb-4">
+          <CardTitle className="text-lg text-slate-800">Financial Eligibility Pipeline</CardTitle>
+          <p className="text-sm text-slate-500 mt-1">Rule-based calculation flow</p>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 md:gap-0">
+            
+            <div className="flex flex-col items-center text-center w-full md:w-1/4">
+              <span className="text-2xl font-bold tabular-nums text-slate-800">{formatINR(data.marginCapital)}</span>
+              <span className="text-sm text-slate-500 mt-1">Available Margin</span>
+              <Badge variant="outline" className="mt-2 text-[10px] bg-slate-50">User Input</Badge>
             </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-sm text-muted-foreground flex items-center gap-2">
-                Recommended Initial Deployment 
-                <Badge variant="outline" className="text-xs">Prototype Recommendation</Badge>
-              </span>
-              <span className="text-2xl font-bold text-primary">
-                {decision === 'PROCEED' 
-                  ? formatINR(Math.min(projectCost * 0.90, scheme.maxLoan))
-                  : formatINR(Math.min(projectCost * 0.90, scheme.maxLoan) * 0.75)} 
-              </span>
-            </div>
-            <p className="text-sm text-muted-foreground mt-4">
-              Maximum borrowing eligibility is not always the same as optimal capital deployment.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* 4. Business Economics */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Business Economics</CardTitle>
-            <CardDescription>Normal Case Scenario (Annual)</CardDescription>
+            <ArrowDown className="w-5 h-5 text-slate-300 md:-rotate-90 shrink-0" />
+
+            <div className="flex flex-col items-center text-center w-full md:w-1/4">
+              <span className="text-2xl font-bold tabular-nums text-slate-800">{formatINR(projectCost)}</span>
+              <span className="text-sm text-slate-500 mt-1">Feasible Project Cost</span>
+              <Badge variant="outline" className="mt-2 text-[10px] bg-slate-50">Calculated</Badge>
+            </div>
+
+            <ArrowDown className="w-5 h-5 text-slate-300 md:-rotate-90 shrink-0" />
+
+            <div className="flex flex-col items-center text-center w-full md:w-1/4">
+              <span className="text-2xl font-bold tabular-nums text-emerald-700">{formatINR(maxEligibleLoan)}</span>
+              <span className="text-sm text-slate-500 mt-1">Maximum Loan</span>
+              <Badge variant="outline" className="mt-2 text-[10px] bg-slate-50">Calculated</Badge>
+            </div>
+
+            <ArrowDown className="w-5 h-5 text-slate-300 md:-rotate-90 shrink-0" />
+
+            <div className="flex flex-col items-center text-center w-full md:w-1/4 bg-slate-50 p-3 rounded-lg border border-slate-100">
+              <span className="font-semibold text-slate-800">{scheme.name}</span>
+              <span className="text-xs text-slate-500 mt-1">
+                {scheme.isEligible ? `${scheme.interestRate}% · ${scheme.tenureYears} yrs · ${scheme.moratoriumMonths}mo moratorium` : 'Outside Range'}
+              </span>
+            </div>
+
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* D & E. Business Economics & Stress Test */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* D. Business Economics */}
+        <Card className="border border-slate-200 shadow-sm">
+          <CardHeader className="bg-slate-50 border-b border-slate-100 pb-4">
+            <CardTitle className="text-lg text-slate-800">Business Economics</CardTitle>
+            <p className="text-sm text-slate-500 mt-1">Normal Case Scenario (Annual)</p>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Total Revenue</span>
-              <span className="font-medium text-green-700">{formatINR(normalEconomics.annualMilkRevenue)}</span>
+          <CardContent className="p-6 space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-slate-600">Annual Revenue</span>
+              <span className="font-medium tabular-nums text-slate-800">{formatINR(normalEconomics.annualMilkRevenue)}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Operating Cost</span>
-              <span className="font-medium text-red-700">{formatINR(normalEconomics.totalOperatingCost)}</span>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-slate-600">Annual Operating Cost</span>
+              <span className="font-medium tabular-nums text-slate-800">{formatINR(normalEconomics.totalOperatingCost)}</span>
             </div>
-            <Separator />
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Operating Surplus</span>
-              <span className="font-bold">{formatINR(normalEconomics.annualOperatingSurplus)}</span>
+            <Separator className="bg-slate-200" />
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-slate-800">Operating Surplus</span>
+              <span className="font-semibold tabular-nums text-slate-800">{formatINR(normalEconomics.annualOperatingSurplus)}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Repayment Burden</span>
-              <span className="font-medium text-amber-700">- {formatINR(normalEconomics.annualRepaymentBurden)}</span>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-slate-600">Approx. Repayment Burden</span>
+              <span className="font-medium tabular-nums text-slate-500">- {formatINR(normalEconomics.annualRepaymentBurden)}</span>
             </div>
-            <Separator />
-            <div className="flex justify-between text-lg">
-              <span className="font-semibold text-muted-foreground">Post-Repayment Cash</span>
-              <span className={`font-bold ${normalEconomics.postRepaymentSurplus > 0 ? 'text-green-700' : 'text-red-700'}`}>
+            <div className="bg-emerald-50 rounded-lg p-4 mt-4 border border-emerald-100 flex justify-between items-center">
+              <span className="font-semibold text-emerald-900">Post-Repayment Cash</span>
+              <span className={`text-xl font-bold tabular-nums ${normalEconomics.postRepaymentSurplus > 0 ? 'text-emerald-700' : 'text-red-700'}`}>
                 {formatINR(normalEconomics.postRepaymentSurplus)}
               </span>
             </div>
-            <div className="text-xs text-muted-foreground flex items-center gap-1 mt-4">
-              <Info className="w-3 h-3" />
-              Includes prototype assumptions for vet, labour, and utilities.
-            </div>
           </CardContent>
         </Card>
 
-        {/* 5. Stress Test */}
-        <Card className="border-amber-200">
-          <CardHeader className="bg-amber-50/50 rounded-t-xl">
-            <CardTitle className="flex items-center gap-2">
-              <TrendingDown className="w-5 h-5 text-amber-600" />
-              Stress Test Scenario
+        {/* E. Stress Test */}
+        <Card className="border border-amber-200 shadow-sm overflow-hidden">
+          <CardHeader className="bg-amber-50 border-b border-amber-100 pb-4">
+            <CardTitle className="text-lg text-amber-900 flex items-center gap-2">
+              <TrendingDown className="w-5 h-5" /> Stress Test
             </CardTitle>
-            <CardDescription>Yield -20% & Feed Cost +15%</CardDescription>
+            <p className="text-sm text-amber-700 mt-1">Milk Yield -20% | Feed Cost +15%</p>
           </CardHeader>
-          <CardContent className="space-y-3 pt-6">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Stress Revenue</span>
-              <span className="font-medium">{formatINR(stressEconomics.annualMilkRevenue)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Stress Operating Cost</span>
-              <span className="font-medium">{formatINR(stressEconomics.totalOperatingCost)}</span>
-            </div>
-            <Separator />
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Stress Surplus</span>
-              <span className="font-medium">{formatINR(stressEconomics.annualOperatingSurplus)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Repayment Burden</span>
-              <span className="font-medium">- {formatINR(stressEconomics.annualRepaymentBurden)}</span>
-            </div>
-            <Separator />
-            <div className="flex justify-between text-lg">
-              <span className="font-semibold text-muted-foreground">Stress Cash Flow</span>
-              <span className={`font-bold ${stressEconomics.postRepaymentSurplus > 0 ? 'text-green-700' : 'text-red-700'}`}>
-                {formatINR(stressEconomics.postRepaymentSurplus)}
-              </span>
+          <CardContent className="p-0">
+            <div className="grid grid-cols-2 divide-x divide-slate-100">
+              <div className="p-6 bg-white space-y-4">
+                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Normal Case</div>
+                <div>
+                  <div className="text-xs text-slate-500 mb-1">Revenue</div>
+                  <div className="font-medium tabular-nums text-slate-800">{formatINR(normalEconomics.annualMilkRevenue)}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500 mb-1">Operating Cost</div>
+                  <div className="font-medium tabular-nums text-slate-800">{formatINR(normalEconomics.totalOperatingCost)}</div>
+                </div>
+                <div className="pt-2 border-t border-slate-100">
+                  <div className="text-xs font-medium text-slate-700 mb-1">Post-Repayment</div>
+                  <div className={`font-bold tabular-nums ${normalEconomics.postRepaymentSurplus > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                    {formatINR(normalEconomics.postRepaymentSurplus)}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-6 bg-amber-50/30 space-y-4 relative">
+                <div className="text-xs font-semibold text-amber-600 uppercase tracking-wider mb-4">Stress Case</div>
+                <div>
+                  <div className="text-xs text-slate-500 mb-1">Revenue</div>
+                  <div className="font-medium tabular-nums text-slate-800">{formatINR(stressEconomics.annualMilkRevenue)}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500 mb-1">Operating Cost</div>
+                  <div className="font-medium tabular-nums text-slate-800">{formatINR(stressEconomics.totalOperatingCost)}</div>
+                </div>
+                <div className="pt-2 border-t border-amber-100">
+                  <div className="text-xs font-medium text-slate-700 mb-1">Post-Repayment</div>
+                  <div className={`font-bold tabular-nums ${stressEconomics.postRepaymentSurplus > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                    {formatINR(stressEconomics.postRepaymentSurplus)}
+                  </div>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* 6, 7, 8: Local Insights */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* 6. Market Reach */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Market Reach</CardTitle>
-            <CardDescription>{data.village}, {data.district}</CardDescription>
+      {/* F, G, H, I: Local Insights */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+                {/* F. Market Reach */}
+        <Card className="border border-slate-200 shadow-sm flex flex-col h-full">
+          <CardHeader className="bg-slate-50 border-b border-slate-100 pb-4 flex flex-row items-start justify-between">
+            <div>
+              <CardTitle className="text-base text-slate-800">Market Reach</CardTitle>
+              <p className="text-xs text-slate-500 mt-1">{data.village}, {data.district}</p>
+            </div>
+            <EvidenceBadge item={evidence?.marketReach} />
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <h4 className="font-medium mb-1">5 km Immediate</h4>
-              <p className="text-sm text-muted-foreground">High penetration potential. Daily fresh delivery.</p>
-            </div>
-            <div>
-              <h4 className="font-medium mb-1">10 km Extended</h4>
-              <p className="text-sm text-muted-foreground">Bulk supply routes.</p>
-            </div>
-            <div>
-              <h4 className="font-medium mb-1">Likely Channels</h4>
-              <ul className="text-sm text-muted-foreground list-disc pl-4 mt-1 space-y-1">
-                <li>Households</li>
-                <li>Tea Shops</li>
-                <li>Sweet Shops</li>
-                <li>Milk Collection Centres</li>
-                <li>Local Retailers</li>
-              </ul>
-            </div>
+          <CardContent className="p-5 flex-1">
+            {evidenceLoading ? (
+              <div className="flex items-center justify-center py-10 text-slate-400"><Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading...</div>
+            ) : evidence?.marketReach ? (
+              <div className="space-y-5">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">5 KM</h4>
+                    <p className="text-2xl font-black text-slate-800">{evidence.marketReach.value.zone5.count}</p>
+                    <p className="text-xs font-medium text-slate-500">Signal: {evidence.marketReach.value.zone5.signal}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">10 KM</h4>
+                    <p className="text-2xl font-black text-slate-800">{evidence.marketReach.value.zone10.count}</p>
+                    <p className="text-xs font-medium text-slate-500">Signal: {evidence.marketReach.value.zone10.signal}</p>
+                  </div>
+                </div>
+                <Separator className="bg-slate-100" />
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-800 mb-3">Likely Channels</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {evidence.marketReach.value.channels.length > 0 ? evidence.marketReach.value.channels.map((channel: string) => (
+                      <Badge key={channel} variant="secondary" className="px-2 py-0.5 bg-slate-100 text-slate-600 font-medium">{channel}</Badge>
+                    )) : (
+                      <span className="text-sm text-slate-400">Insufficient mapped channels</span>
+                    )}
+                  </div>
+                </div>
+                {evidence.marketReach.value.samples && evidence.marketReach.value.samples.length > 0 && (
+                  <div className="pt-2">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">View Evidence</p>
+                    <ul className="text-xs text-slate-500 space-y-1.5">
+                      {evidence.marketReach.value.samples.map((s: any, idx: number) => (
+                        <li key={idx} className="flex justify-between border-b border-slate-50 pb-1 last:border-0"><span className="font-medium text-slate-700 truncate pr-2">{s.name}</span> <span>{s.distanceKm.toFixed(1)} km</span></li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <p className="text-xs text-slate-400 italic mt-2">Mapped activity is used as a local market proxy in this prototype.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-sm text-slate-600">
+                  Live mapped channel evidence is currently unavailable.
+                </p>
+                <div>
+                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Prototype / Validation Checklist</h4>
+                  <p className="text-sm text-slate-500 mb-1">Potential dairy channels to validate locally:</p>
+                  <ul className="text-sm text-slate-500 list-disc pl-4 space-y-1">
+                    <li>Households</li>
+                    <li>Tea Shops</li>
+                    <li>Sweet Shops</li>
+                    <li>Milk Collection Centres</li>
+                  </ul>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* 7. Opportunity Analysis */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Opportunity Analysis</CardTitle>
-            <CardDescription>Tailored for {data.animalCount} herd size</CardDescription>
+        {/* G. Opportunity Analysis */}
+        <Card className="border border-slate-200 shadow-sm flex flex-col h-full">
+          <CardHeader className="bg-slate-50 border-b border-slate-100 pb-4 flex flex-row items-start justify-between">
+            <div>
+              <CardTitle className="text-base text-slate-800">Opportunity Analysis</CardTitle>
+              <CardDescription className="mt-1">Tailored for {data.animalCount} herd size</CardDescription>
+            </div>
+            <Badge variant="outline" className="text-[10px] bg-slate-100 text-slate-600 border-slate-200 uppercase font-semibold">Prototype</Badge>
           </CardHeader>
-          <CardContent>
-            <ul className="space-y-3">
-              <li className="flex gap-2 items-start">
-                <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
-                <span className="text-sm">Direct household milk delivery in {data.village} for premium pricing.</span>
+          <CardContent className="p-5 flex-1">
+            <ul className="space-y-4">
+              <li className="flex gap-3 items-start">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                <span className="text-sm text-slate-600"><strong className="text-slate-800">Direct Delivery:</strong> {evidence?.marketReach ? "Likely viable channel given mapped market presence, though local willingness-to-pay must be verified." : "Potential channel to validate locally. Household willingness-to-pay has not been independently verified."}</span>
               </li>
-              <li className="flex gap-2 items-start">
-                <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
-                <span className="text-sm">Consistent supply to district collection centres in {data.district}.</span>
+              <li className="flex gap-3 items-start">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                <span className="text-sm text-slate-600"><strong className="text-slate-800">Bulk Supply:</strong> {evidence?.marketReach?.value?.channels?.includes("Collection/cooperative channel") ? "Mapped cooperative infrastructure supports bulk supply routes." : "Explore nearby collection/cooperative channels after local verification."}</span>
               </li>
-              <li className="flex gap-2 items-start">
-                <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
-                <span className="text-sm">Value-added dairy products (curd/paneer) in Phase 2 scaling.</span>
+              <li className="flex gap-3 items-start">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                <span className="text-sm text-slate-600"><strong className="text-slate-800">Value-Added Products:</strong> Future Phase 2 scaling via curd and paneer manufacturing.</span>
               </li>
             </ul>
           </CardContent>
         </Card>
 
-        {/* 8. Competitor Mapping & PMV */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle>Competitor Mapping</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Badge variant="outline" className="mb-2">Density: Not yet verified</Badge>
-              <p className="text-sm text-muted-foreground mb-2">
-                Live maps and local enterprise datasets will be integrated in the next phase.
-              </p>
-              <p className="text-xs text-muted-foreground border-t pt-2">
-                <strong>Guide:</strong> Low competition indicates opportunity; high competition indicates established demand but price pressure.
-              </p>
-            </CardContent>
-          </Card>
-          
-          {/* 9. Product Market Value */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle>Product Market Value</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Target Price</span>
-                <span className="font-medium">₹{data.milkPrice}/L</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Est. Cost</span>
-                <span className="font-medium">₹{costPerLitreNormal.toFixed(1)}/L</span>
-              </div>
-              <div className="flex justify-between text-sm pt-1 border-t">
-                <span className="text-muted-foreground">Position</span>
-                <Badge variant={pricingPosition === 'High Margin' ? 'default' : 'secondary'}>{pricingPosition}</Badge>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+{/* H. Product Market Value */}
+        <Card className="border border-slate-200 shadow-sm">
+          <CardHeader className="bg-slate-50 border-b border-slate-100 pb-4">
+            <CardTitle className="text-base text-slate-800">Product Market Value</CardTitle>
+          </CardHeader>
+          <CardContent className="p-5 space-y-3">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-slate-600">Target Price <Badge variant="outline" className="ml-2 text-[10px]">Input</Badge></span>
+              <span className="font-medium tabular-nums">₹{data.milkPrice}/L</span>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-slate-600">Est. Operating Cost</span>
+              <span className="font-medium tabular-nums">₹{costPerLitreNormal.toFixed(1)}/L</span>
+            </div>
+            <Separator className="bg-slate-100" />
+            <div className="flex justify-between items-center text-sm pt-1">
+              <span className="font-medium text-slate-800">Positioning</span>
+              <Badge variant={pricingPosition === 'High Margin' ? 'default' : 'secondary'} className={pricingPosition === 'High Margin' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-slate-100 text-slate-700'}>
+                {pricingPosition}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+        
+                {/* I. Competitor Mapping */}
+        <Card className="border border-slate-200 shadow-sm flex flex-col h-full">
+          <CardHeader className="bg-slate-50 border-b border-slate-100 pb-4 flex flex-row items-start justify-between">
+            <CardTitle className="text-base text-slate-800">Competitor Mapping</CardTitle>
+            <EvidenceBadge item={evidence?.competitorSignal} />
+          </CardHeader>
+          <CardContent className="p-5 flex-1 space-y-5">
+            {evidenceLoading ? (
+              <div className="flex items-center justify-center py-10 text-slate-400"><Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading...</div>
+            ) : evidence?.competitorSignal ? (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">5 KM</h4>
+                    <p className="text-2xl font-black text-slate-800">{evidence.competitorSignal.value.zone5}</p>
+                    <p className="text-[10px] font-medium text-slate-500 uppercase">Mapped Dairy POIs</p>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">10 KM</h4>
+                    <p className="text-2xl font-black text-slate-800">{evidence.competitorSignal.value.zone10}</p>
+                    <p className="text-[10px] font-medium text-slate-500 uppercase">Mapped Dairy POIs</p>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-800 mb-1">{evidence.competitorSignal.value.signal}</h4>
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    {evidence.competitorSignal.value.guidance}
+                  </p>
+                </div>
+                {evidence.competitorSignal.value.samples && evidence.competitorSignal.value.samples.length > 0 && (
+                  <div className="pt-2 border-t border-slate-100">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 mt-4">View Evidence</p>
+                    <ul className="text-xs text-slate-500 space-y-1.5">
+                      {evidence.competitorSignal.value.samples.map((s: any, idx: number) => (
+                        <li key={idx} className="flex justify-between border-b border-slate-50 pb-1 last:border-0"><span className="font-medium text-slate-700 truncate pr-2">{s.name}</span> <span>{s.distanceKm.toFixed(1)} km</span></li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <p className="text-[11px] text-slate-400 italic">
+                  {evidence.competitorSignal.caveat}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  Live density maps and local enterprise datasets are currently unavailable.
+                </p>
+                <div className="bg-slate-50 rounded-lg p-4 border border-slate-100">
+                  <h4 className="text-[10px] font-bold text-slate-800 uppercase tracking-wider mb-1">Guidance</h4> 
+                  <p className="text-sm text-slate-500">Low competition indicates opportunity; high competition indicates established demand but potential price pressure.</p>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
-      {/* 10. SWOT & 11. Threats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>SWOT Analysis</CardTitle>
+{/* J & K: SWOT & Threats */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* J. SWOT */}
+        <Card className="border border-slate-200 shadow-sm">
+          <CardHeader className="bg-slate-50 border-b border-slate-100 pb-4">
+            <CardTitle className="text-lg text-slate-800">SWOT Analysis</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-green-50 p-4 rounded-lg">
-                <h4 className="font-bold text-green-800 mb-2">Strengths</h4>
-                <ul className="text-sm text-green-900 space-y-1 list-disc pl-4">
-                  <li>{data.marginCapital >= 100000 ? "Solid initial capital" : "Accessible scale"}</li>
-                  <li>Local knowledge of {data.state}</li>
+          <CardContent className="p-5">
+            <div className="grid grid-cols-2 gap-px bg-slate-200 border border-slate-200 rounded-lg overflow-hidden">
+              <div className="bg-white p-4">
+                <h4 className="text-xs font-bold text-emerald-700 uppercase tracking-wider mb-2">Strengths</h4>
+                <ul className="text-sm text-slate-600 space-y-1">
+                  <li>• {data.marginCapital >= 100000 ? "Solid initial capital" : "Accessible scale"}</li>
+                  <li>• Local knowledge of {data.state}</li>
                 </ul>
               </div>
-              <div className="bg-red-50 p-4 rounded-lg">
-                <h4 className="font-bold text-red-800 mb-2">Weaknesses</h4>
-                <ul className="text-sm text-red-900 space-y-1 list-disc pl-4">
-                  <li>{data.experienceLevel === 'beginner' ? "Limited operational experience" : "Scale constraints"}</li>
-                  <li>Input dependency</li>
+              <div className="bg-white p-4">
+                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Weaknesses</h4>
+                <ul className="text-sm text-slate-600 space-y-1">
+                  <li>• {data.experienceLevel === 'beginner' ? "Limited operational experience" : "Scale constraints"}</li>
+                  <li>• Input dependency</li>
                 </ul>
               </div>
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h4 className="font-bold text-blue-800 mb-2">Opportunities</h4>
-                <ul className="text-sm text-blue-900 space-y-1 list-disc pl-4">
-                  <li>Growing local demand</li>
-                  <li>Institutional financing</li>
+              <div className="bg-white p-4">
+                <h4 className="text-xs font-bold text-emerald-700 uppercase tracking-wider mb-2">Opportunities</h4>
+                <ul className="text-sm text-slate-600 space-y-1">
+                  <li>• {evidence?.marketReach ? "Growing local demand identified" : "Potential local dairy demand — requires validation"}</li>
+                  <li>• Scheme support eligible</li>
                 </ul>
               </div>
-              <div className="bg-amber-50 p-4 rounded-lg">
-                <h4 className="font-bold text-amber-800 mb-2">Threats</h4>
-                <ul className="text-sm text-amber-900 space-y-1 list-disc pl-4">
-                  <li>Climate volatility</li>
-                  <li>Market price fluctuations</li>
+              <div className="bg-white p-4">
+                <h4 className="text-xs font-bold text-amber-700 uppercase tracking-wider mb-2">Threats</h4>
+                <ul className="text-sm text-slate-600 space-y-1">
+                  <li>• Climate volatility</li>
+                  <li>• Market price fluctuations</li>
                 </ul>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Risk & Threat Identification</CardTitle>
-            <CardDescription>Ranked risks for your profile</CardDescription>
+        {/* K. Threats */}
+        <Card className="border border-slate-200 shadow-sm">
+          <CardHeader className="bg-slate-50 border-b border-slate-100 pb-4">
+            <CardTitle className="text-lg text-slate-800">Threat Identification</CardTitle>
+            <p className="text-sm text-slate-500 mt-1">Ranked risks for your profile</p>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-sm">Feed Cost Volatility</span>
-              <Badge variant="destructive">High Risk</Badge>
+          <CardContent className="p-5 space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <span className="font-medium text-sm text-slate-800 block">Feed Cost Volatility</span>
+                <span className="text-xs text-slate-500">Highly sensitive to market rates</span>
+              </div>
+              <Badge variant="destructive" className="bg-red-600 text-white hover:bg-red-700 shrink-0">High Risk</Badge>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-sm">Seasonal Milk Yield Variation</span>
-              <Badge variant="destructive">High Risk</Badge>
+            <Separator className="bg-slate-100" />
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <span className="font-medium text-sm text-slate-800 block">Seasonal Milk Yield Variation</span>
+                <span className="text-xs text-slate-500">Summer drops affect cash flow</span>
+              </div>
+              <Badge variant="destructive" className="bg-red-600 text-white hover:bg-red-700 shrink-0">High Risk</Badge>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-sm">Buyer Dependency</span>
-              <Badge variant="secondary" className="bg-amber-100 text-amber-800">Medium Risk</Badge>
+            <Separator className="bg-slate-100" />
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <span className="font-medium text-sm text-slate-800 block">Buyer Dependency</span>
+                <span className="text-xs text-slate-500">Relying on few collection points</span>
+              </div>
+              <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50 shrink-0">Medium Risk</Badge>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-sm">Veterinary Accessibility</span>
-              <Badge variant="secondary" className="bg-amber-100 text-amber-800">Medium Risk</Badge>
+            <Separator className="bg-slate-100" />
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <span className="font-medium text-sm text-slate-800 block">Veterinary Accessibility</span>
+                <span className="text-xs text-slate-500">Emergency care availability</span>
+              </div>
+              <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50 shrink-0">Medium Risk</Badge>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-sm">Working Capital Pressure</span>
-              <Badge variant="outline">Low Risk</Badge>
+            <Separator className="bg-slate-100" />
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <span className="font-medium text-sm text-slate-800 block">Working Capital Pressure</span>
+                <span className="text-xs text-slate-500">Monthly operational buffer</span>
+              </div>
+              <Badge variant="outline" className="text-slate-600 border-slate-300 bg-slate-50 shrink-0">Low Risk</Badge>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* 12. Prototype Disclaimer */}
-      <Alert className="bg-muted">
+      {/* L. Prototype Disclaimer */}
+      <Alert className="bg-slate-100 border-slate-200 text-slate-600">
         <Info className="h-4 w-4" />
-        <AlertTitle>Prototype Disclaimer</AlertTitle>
-        <AlertDescription>
-          Prototype assessment based on user inputs and regional assumptions. Live demographic, market, competitor and pricing datasets will be integrated in the next phase.
+        <AlertTitle className="font-semibold text-slate-800">Prototype Context</AlertTitle>
+        <AlertDescription className="text-sm mt-1">
+          This is a hackathon prototype assessment based on user inputs and deterministic regional assumptions. Live demographic, market, competitor and pricing datasets will be integrated in the next phase. No real financial commitment is made.
         </AlertDescription>
       </Alert>
     </div>
