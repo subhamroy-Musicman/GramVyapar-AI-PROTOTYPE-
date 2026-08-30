@@ -1,9 +1,13 @@
 import { POIResult } from "@/types/evidence";
 
 const osmCache = new Map<string, POIResult[]>();
+const QUERY_VERSION = "v1.1";
 
 export async function fetchOSMData(lat: number, lon: number, radius: number): Promise<POIResult[] | null> {
-  const cacheKey = `${lat.toFixed(3)},${lon.toFixed(3)}-${radius}`;
+  const roundedLat = lat.toFixed(3);
+  const roundedLon = lon.toFixed(3);
+  const cacheKey = `evidence:${roundedLat}:${roundedLon}:${radius}:${QUERY_VERSION}`;
+  
   if (osmCache.has(cacheKey)) return osmCache.get(cacheKey)!;
 
   const query = `
@@ -28,10 +32,15 @@ export async function fetchOSMData(lat: number, lon: number, radius: number): Pr
     "https://lz4.overpass-api.de/api/interpreter",
     "https://overpass-api.de/api/interpreter"
   ];
-
   let lastError = null;
+  let endpointIndex = 0;
+  
   for (const endpoint of endpoints) {
+    endpointIndex++;
     try {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[evidence] overpass ${radius}m request started (attempt ${endpointIndex}/${endpoints.length}): ${endpoint}`);
+      }
       const response = await fetch(endpoint, {
         method: "POST",
         body: "data=" + encodeURIComponent(query),
@@ -45,11 +54,23 @@ export async function fetchOSMData(lat: number, lon: number, radius: number): Pr
       
       if (!response.ok) {
         lastError = `OSM Error ${response.status}: ${await response.text()}`;
-        console.error(lastError);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[evidence] overpass ${radius}m failed. endpoint=${endpoint} status=${response.status}`);
+          if (endpointIndex < endpoints.length) {
+            console.log(`[evidence] fallback attempted`);
+          }
+        }
         continue;
       }
       
       const data = await response.json();
+      if (process.env.NODE_ENV === 'development') {
+        if (endpointIndex > 1) {
+          console.log(`[evidence] fallback success`);
+        }
+        console.log(`[evidence] overpass ${radius}m success. elements=${data.elements ? data.elements.length : 0}`);
+      }
+      
       if (!data.elements) return []; // SUCCESS_EMPTY
       
       const results: POIResult[] = data.elements.map((el: any) => {
@@ -63,15 +84,31 @@ export async function fetchOSMData(lat: number, lon: number, radius: number): Pr
         
         let type = "other";
         const nameLower = tags.name?.toLowerCase() || "";
-        const isDairyName = nameLower.includes("dairy") || nameLower.includes("milk") || nameLower.includes("dudh") || nameLower.includes("doodh") || nameLower.includes("dugdha");
+        
+        // Stage B: Local Classification Rules
+        const dairyTerms = ["dairy", "milk", "dudh", "doodh", "dugdha", "milk centre", "milk center"];
+        const isDairyName = dairyTerms.some(term => nameLower.includes(term));
         const isCoopName = nameLower.includes("cooperative") || nameLower.includes("co-operative");
         
-        if (tags.amenity === "veterinary") type = "veterinary";
-        else if (tags.shop === "dairy" || isDairyName) type = "dairy_business";
-        else if (isCoopName && (tags.shop || tags.amenity || isDairyName)) type = "dairy_cooperative";
-        else if (tags.amenity === "marketplace") type = "marketplace";
-        else if (["supermarket", "convenience", "general", "grocery", "wholesale"].includes(tags.shop || "")) type = "retail";
-        else if (["restaurant", "cafe", "fast_food"].includes(tags.amenity || "")) type = "food_service";
+        // SUPPORT_INFRASTRUCTURE
+        if (tags.amenity === "veterinary") {
+          type = "veterinary";
+        }
+        // DIRECT_DAIRY_SIGNAL
+        else if (tags.shop === "dairy" || isDairyName) {
+          type = "dairy_business";
+          if (isCoopName) type = "dairy_cooperative";
+        }
+        // POTENTIAL_SALES_CHANNEL
+        else if (tags.amenity === "marketplace") {
+          type = "marketplace";
+        }
+        else if (["supermarket", "convenience", "general", "grocery", "wholesale"].includes(tags.shop || "")) {
+          type = "retail";
+        }
+        else if (["restaurant", "cafe", "fast_food"].includes(tags.amenity || "")) {
+          type = "food_service";
+        }
         
         return {
           id: typeof el.id === 'number' ? el.id : 0,
@@ -90,7 +127,12 @@ export async function fetchOSMData(lat: number, lon: number, radius: number): Pr
       osmCache.set(cacheKey, uniqueResults);
       return uniqueResults;
     } catch (error) {
-      console.error(`OSM fetch failed for ${endpoint}:`, error);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[evidence] overpass ${radius}m error. endpoint=${endpoint} error=${error}`);
+        if (endpointIndex < endpoints.length) {
+          console.log(`[evidence] fallback attempted`);
+        }
+      }
       lastError = error;
     }
   }

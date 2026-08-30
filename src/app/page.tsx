@@ -5,9 +5,31 @@ import { AssessmentForm, formSchema } from "@/components/AssessmentForm";
 import { ResultsDashboard } from "@/components/ResultsDashboard";
 import { z } from "zod";
 import Image from "next/image";
-import { Leaf } from "lucide-react";
+import { LanguageProvider, useLanguage } from "@/lib/i18n/LanguageContext";
+import { SUPPORTED_LANGUAGES, LanguageCode } from "@/lib/i18n/config";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Globe } from "lucide-react";
 
-export default function Home() {
+function LanguageSelector() {
+  const { language, setLanguage } = useLanguage();
+  return (
+    <Select value={language} onValueChange={(val) => setLanguage(val as LanguageCode)}>
+      <SelectTrigger className="w-[120px] h-9 text-xs font-medium bg-white/10 text-[#DDE8E1] border-white/20 hover:bg-white/20 focus:ring-0 focus-visible:ring-0">
+        <Globe className="w-3.5 h-3.5 mr-2 opacity-70" />
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {Object.entries(SUPPORTED_LANGUAGES).map(([code, config]) => (
+          <SelectItem key={code} value={code}>
+            {config.nativeLabel}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function MainApp() {
   const [assessmentData, setAssessmentData] = useState<z.infer<typeof formSchema> | null>(null);
 
   return (
@@ -28,9 +50,12 @@ export default function Home() {
                 GramVyapar AI
               </h1>
             </button>
-            <span className="text-[10px] md:text-xs font-semibold text-[#DDE8E1] bg-white/10 px-2 py-0.5 md:py-1 rounded-full border border-white/20 whitespace-nowrap self-center">
+            <span className="hidden sm:inline-block text-[10px] md:text-xs font-semibold text-[#DDE8E1] bg-white/10 px-2 py-0.5 md:py-1 rounded-full border border-white/20 whitespace-nowrap self-center">
               Prototype
             </span>
+          </div>
+          <div className="flex items-center">
+            <LanguageSelector />
           </div>
         </div>
       </header>
@@ -54,5 +79,13 @@ export default function Home() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <LanguageProvider>
+      <MainApp />
+    </LanguageProvider>
   );
 }

@@ -44,7 +44,12 @@ interface AssessmentFormProps {
   onSubmitSuccess: (data: z.infer<typeof formSchema>) => void;
 }
 
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { useTranslation } from "@/lib/i18n/translations";
+
 export function AssessmentForm({ onSubmitSuccess }: AssessmentFormProps) {
+  const { language } = useLanguage();
+  const t = useTranslation(language);
   const [step, setStep] = useState(1);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -392,7 +397,7 @@ export function AssessmentForm({ onSubmitSuccess }: AssessmentFormProps) {
                 type="submit"
                 className="w-full md:w-auto h-12 bg-brand-700 hover:bg-brand-hover text-white shadow-sm font-medium px-8 transition-colors"
               >
-                Generate Assessment
+                {t("Generate Assessment")}
               </Button>
             )}
           </CardFooter>

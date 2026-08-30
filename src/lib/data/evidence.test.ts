@@ -2,18 +2,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { gatherLiveEvidence } from './evidence';
 import * as osm from './osm';
 import * as geocoding from './geocoding';
-import * as weather from './weather';
+import * as openmeteo from './openmeteo';
 import { GeocodeResult, POIResult } from '@/types/evidence';
 
 vi.mock('./osm');
 vi.mock('./geocoding');
-vi.mock('./weather');
+vi.mock('./openmeteo');
 
 describe('evidence normalization and thresholds', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(geocoding.geocodeLocation).mockResolvedValue({ latitude: 10, longitude: 20 } as GeocodeResult);
-    vi.mocked(weather.fetchWeather).mockResolvedValue(null);
+    vi.mocked(openmeteo.fetchWeather).mockResolvedValue({ status: "PROVIDER_UNAVAILABLE", provider: "OPEN_METEO" } as any);
   });
 
   it('normalizes competitor signal thresholds in 5km and 10km zones', async () => {
@@ -42,6 +42,7 @@ describe('evidence normalization and thresholds', () => {
     ]);
     result = await gatherLiveEvidence('Village', 'District', 'State');
     expect(result.competitorSignal?.value.signal).toBe('Low mapped signal');
+    expect(result.competitorSignal?.confidence).toBe('low');
 
     // Insufficient (0)
     vi.mocked(osm.fetchOSMData).mockResolvedValue([]);
@@ -73,5 +74,36 @@ describe('evidence normalization and thresholds', () => {
     const result = await gatherLiveEvidence('Unknown Village', 'Unknown District', 'State');
     expect(result.marketReach).toBeNull();
     expect(result.competitorSignal).toBeNull();
+  });
+
+  it('preserves 5km evidence if 10km fails', async () => {
+    vi.mocked(osm.fetchOSMData).mockImplementation(async (lat, lon, radius) => {
+      if (radius === 5000) return [{ id: 1, type: 'dairy_business', distanceKm: 4, osmTags: {} } as unknown as POIResult];
+      return null; // 10km fails
+    });
+    const result = await gatherLiveEvidence('Village', 'District', 'State');
+    expect(result.competitorSignal).not.toBeNull();
+    expect(result.competitorSignal?.value.zone5).toBe(1);
+    expect(result.competitorSignal?.value.zone10).toBe(1); // 10km zone count will include the 5km ones
+  });
+
+  it('preserves 10km evidence if 5km fails', async () => {
+    vi.mocked(osm.fetchOSMData).mockImplementation(async (lat, lon, radius) => {
+      if (radius === 10000) return [{ id: 2, type: 'dairy_business', distanceKm: 8, osmTags: {} } as unknown as POIResult];
+      return null; // 5km fails
+    });
+    const result = await gatherLiveEvidence('Village', 'District', 'State');
+    expect(result.competitorSignal).not.toBeNull();
+    expect(result.competitorSignal?.value.zone5).toBe(0);
+    expect(result.competitorSignal?.value.zone10).toBe(1);
+  });
+
+  it('preserves OSM evidence if Open-Meteo fails', async () => {
+    vi.mocked(osm.fetchOSMData).mockResolvedValue([{ id: 3, type: 'dairy_business', distanceKm: 2, osmTags: {} } as unknown as POIResult]);
+    vi.mocked(openmeteo.fetchWeather).mockResolvedValue({ status: "PROVIDER_UNAVAILABLE", provider: "OPEN_METEO" });
+    
+    const result = await gatherLiveEvidence('Village', 'District', 'State');
+    expect(result.competitorSignal).not.toBeNull();
+    expect(result.weatherRisk).toBeNull(); // Weather failed but competitor mapping survived
   });
 });

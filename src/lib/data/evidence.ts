@@ -1,7 +1,7 @@
 import { LiveEvidence, EvidenceItem } from "@/types/evidence";
 import { geocodeLocation } from "./geocoding";
 import { fetchOSMData } from "./osm";
-import { fetchWeather } from "./weather";
+import { fetchWeather } from "./openmeteo";
 
 export async function gatherLiveEvidence(village: string, district: string, state: string): Promise<LiveEvidence> {
   console.log(`\n[LocalEvidence] Resolving location: ${village}, ${district}, ${state}`);
@@ -22,7 +22,11 @@ export async function gatherLiveEvidence(village: string, district: string, stat
   const [osm5Result, osm10Result, weatherData] = await Promise.all([
     fetchOSMData(geocode.latitude, geocode.longitude, 5000).catch(e => { console.log('[LocalEvidence] 5km request failed:', e); return null; }),
     fetchOSMData(geocode.latitude, geocode.longitude, 10000).catch(e => { console.log('[LocalEvidence] 10km request failed:', e); return null; }),
-    fetchWeather(geocode.latitude, geocode.longitude).catch(() => null)
+    fetchWeather(geocode.latitude, geocode.longitude).catch((e) => ({
+      status: "PROVIDER_UNAVAILABLE",
+      provider: "OPEN_METEO",
+      message: e.message
+    } as const))
   ]);
   
   console.log(`[LocalEvidence] 5km raw element count: ${osm5Result ? osm5Result.length : 'FAILED'}`);
@@ -67,10 +71,18 @@ export async function gatherLiveEvidence(village: string, district: string, stat
     }
     
     const structuredCount = dairyPOIs.filter(p => p.osmTags.shop === "dairy").length;
+    const nameBasedCount = count10 - structuredCount;
+    
     let confidence: "low" | "medium" | "high" = "low";
-    if (count10 === 0) confidence = "low";
-    else if (structuredCount > 1) confidence = "high";
-    else confidence = "medium";
+    if (count10 === 0) {
+      confidence = "low"; // Or maybe this is fine as "low" along with "Insufficient" signal
+    } else if (structuredCount > 1) {
+      confidence = "high";
+    } else if (structuredCount === 1 || nameBasedCount > 1) {
+      confidence = "medium";
+    } else {
+      confidence = "low"; // only sparse/name-based evidence
+    }
     
     competitorSignal = {
       id: "competitor-osm",
@@ -162,7 +174,7 @@ export async function gatherLiveEvidence(village: string, district: string, stat
   
   // 4. Weather Risk
   let weatherRisk: EvidenceItem | null = null;
-  if (weatherData) {
+  if (weatherData && weatherData.status === "AVAILABLE") {
     const risks = [];
     if (weatherData.isHeatStressRisk) risks.push("Potential heat-stress indicator");
     if (weatherData.isLogisticsRisk) risks.push("Possible logistics/feed-supply disruption indicator");
@@ -171,7 +183,7 @@ export async function gatherLiveEvidence(village: string, district: string, stat
       id: "weather-om",
       category: "Weather Risk",
       label: risks.length > 0 ? risks.join(" | ") : "No immediate environmental risks detected",
-      value: weatherData,
+      value: weatherData.daily,
       source: "Open-Meteo",
       sourceType: "live-api",
       confidence: "high",
