@@ -775,4 +775,4 @@ These are future directions, not current MVP capabilities.
 
 This repository currently contains a prototype developed for hackathon and academic evaluation.
 
-Add the appropriate open-source license here if the project is made publicly reusable.
+Built by Team HackBlitz for SIH 2026
