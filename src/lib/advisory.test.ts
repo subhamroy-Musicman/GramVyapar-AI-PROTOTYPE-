@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { generateAdvisory } from './advisory';
 import { GoogleGenAI } from '@google/genai';

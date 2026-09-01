@@ -13,7 +13,7 @@ describe('evidence normalization and thresholds', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(geocoding.geocodeLocation).mockResolvedValue({ latitude: 10, longitude: 20 } as GeocodeResult);
-    vi.mocked(openmeteo.fetchWeather).mockResolvedValue({ status: "PROVIDER_UNAVAILABLE", provider: "OPEN_METEO" } as any);
+    vi.mocked(openmeteo.fetchWeather).mockResolvedValue({ status: "PROVIDER_UNAVAILABLE", provider: "OPEN_METEO" } as openmeteo.WeatherEvidenceResult);
   });
 
   it('normalizes competitor signal thresholds in 5km and 10km zones', async () => {

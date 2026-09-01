@@ -31,9 +31,9 @@ export const translations: Record<LanguageCode, TranslationDictionary> = {
     "Recommended Actions": "Recommended Actions",
     
     "Eligibility vs Viability": "Eligibility vs Viability",
-    "Maximum Eligible Project Size": "Maximum Eligible Project Size",
+    "Maximum Indicative Project Size": "Maximum Indicative Project Size",
     "Prototype Suggested Project Size": "Prototype Suggested Project Size",
-    "Maximum Eligible Loan": "Maximum Eligible Loan",
+    "Maximum Indicative Loan": "Maximum Indicative Loan",
     "Suggested Indicative Loan": "Suggested Indicative Loan",
     
     "Financial Eligibility Pipeline": "Financial Eligibility Pipeline",
@@ -91,9 +91,9 @@ export const translations: Record<LanguageCode, TranslationDictionary> = {
     "Recommended Actions": "अनुशंसित कार्रवाइयां",
     
     "Eligibility vs Viability": "पात्रता बनाम व्यवहार्यता",
-    "Maximum Eligible Project Size": "अधिकतम पात्र परियोजना आकार",
+    "Maximum Indicative Project Size": "अधिकतम पात्र परियोजना आकार",
     "Prototype Suggested Project Size": "सुझाया गया परियोजना आकार",
-    "Maximum Eligible Loan": "अधिकतम पात्र ऋण",
+    "Maximum Indicative Loan": "अधिकतम पात्र ऋण",
     "Suggested Indicative Loan": "सुझाया गया सांकेतिक ऋण",
     
     "Financial Eligibility Pipeline": "वित्तीय पात्रता पाइपलाइन",
@@ -151,9 +151,9 @@ export const translations: Record<LanguageCode, TranslationDictionary> = {
     "Recommended Actions": "প্রস্তাবিত পদক্ষেপ",
     
     "Eligibility vs Viability": "যোগ্যতা বনাম কার্যকারিতা",
-    "Maximum Eligible Project Size": "সর্বোচ্চ যোগ্য প্রকল্প আকার",
+    "Maximum Indicative Project Size": "সর্বোচ্চ যোগ্য প্রকল্প আকার",
     "Prototype Suggested Project Size": "প্রস্তাবিত প্রকল্প আকার",
-    "Maximum Eligible Loan": "সর্বোচ্চ যোগ্য ঋণ",
+    "Maximum Indicative Loan": "সর্বোচ্চ যোগ্য ঋণ",
     "Suggested Indicative Loan": "প্রস্তাবিত ঋণ",
     
     "Financial Eligibility Pipeline": "আর্থিক যোগ্যতার পাইপলাইন",
@@ -211,9 +211,9 @@ export const translations: Record<LanguageCode, TranslationDictionary> = {
     "Recommended Actions": "शिफारस केलेल्या कृती",
     
     "Eligibility vs Viability": "पात्रता विरुद्ध व्यवहार्यता",
-    "Maximum Eligible Project Size": "कमाल पात्र प्रकल्प आकार",
+    "Maximum Indicative Project Size": "कमाल पात्र प्रकल्प आकार",
     "Prototype Suggested Project Size": "सुचविलेला प्रकल्प आकार",
-    "Maximum Eligible Loan": "कमाल पात्र कर्ज",
+    "Maximum Indicative Loan": "कमाल पात्र कर्ज",
     "Suggested Indicative Loan": "सुचविलेले कर्ज",
     
     "Financial Eligibility Pipeline": "आर्थिक पात्रता पाइपलाइन",
@@ -271,9 +271,9 @@ export const translations: Record<LanguageCode, TranslationDictionary> = {
     "Recommended Actions": "பரிந்துரைக்கப்பட்ட செயல்கள்",
     
     "Eligibility vs Viability": "தகுதி மற்றும் சாத்தியக்கூறு",
-    "Maximum Eligible Project Size": "அதிகபட்ச தகுதியான திட்ட அளவு",
+    "Maximum Indicative Project Size": "அதிகபட்ச தகுதியான திட்ட அளவு",
     "Prototype Suggested Project Size": "பரிந்துரைக்கப்பட்ட திட்ட அளவு",
-    "Maximum Eligible Loan": "அதிகபட்ச தகுதியான கடன்",
+    "Maximum Indicative Loan": "அதிகபட்ச தகுதியான கடன்",
     "Suggested Indicative Loan": "பரிந்துரைக்கப்பட்ட கடன்",
     
     "Financial Eligibility Pipeline": "நிதி தகுதி திட்டம்",

@@ -6,6 +6,7 @@ export interface EvidenceItem {
   id: string;
   category: string;
   label: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   value: any;
   source: string;
   sourceType: SourceType;

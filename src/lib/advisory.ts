@@ -157,13 +157,13 @@ Return valid JSON exactly matching the requested schema.`;
     
     console.log("[advisory] FAILED stage=validation error=Schema validation failed");
     return null;
-  } catch (error: any) {
-    console.log(`[advisory] FAILED stage=api_call error=${error?.message || "Unknown error"}`);
+  } catch (error: unknown) {
+    console.log(`[advisory] FAILED stage=api_call error=${(error as Error)?.message || "Unknown error"}`);
     return null;
   }
 }
 
-export async function generateAdvisoryQuestion(data: any, question: string): Promise<string | null> {
+export async function generateAdvisoryQuestion(data: AdvisoryRequest, question: string): Promise<string | null> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
   
@@ -193,8 +193,8 @@ RULES:
       config: { systemInstruction }
     });
     return response.text || null;
-  } catch(err: any) {
-    console.error("[advisory-question] FAILED", err.message);
+  } catch(err: unknown) {
+    console.error("[advisory-question] FAILED", (err as Error).message);
     return null;
   }
 }

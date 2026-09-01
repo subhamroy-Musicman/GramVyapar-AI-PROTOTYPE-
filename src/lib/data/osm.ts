@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { POIResult } from "@/types/evidence";
 
 const osmCache = new Map<string, POIResult[]>();

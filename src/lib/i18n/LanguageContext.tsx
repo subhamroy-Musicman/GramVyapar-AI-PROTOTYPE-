@@ -19,7 +19,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const saved = localStorage.getItem('gv_language');
     if (saved && (['en', 'hi', 'bn', 'mr', 'ta'].includes(saved))) {
-      // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/set-state-in-effect
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLanguageState(saved as LanguageCode);
     }
   }, []);

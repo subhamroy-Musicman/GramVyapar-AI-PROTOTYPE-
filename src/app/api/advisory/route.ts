@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { generateAdvisory } from '@/lib/advisory';

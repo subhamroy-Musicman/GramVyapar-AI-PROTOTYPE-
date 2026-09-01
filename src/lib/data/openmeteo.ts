@@ -86,14 +86,14 @@ export async function fetchWeather(lat: number, lon: number): Promise<WeatherEvi
     
     weatherCache.set(cacheKey, result);
     return result;
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (process.env.NODE_ENV === 'development') {
       console.error(`[evidence] openmeteo error:`, error);
     }
     return {
       status: "PROVIDER_UNAVAILABLE",
       provider: "OPEN_METEO",
-      message: error.message
+      message: (error as Error).message
     };
   }
 }
