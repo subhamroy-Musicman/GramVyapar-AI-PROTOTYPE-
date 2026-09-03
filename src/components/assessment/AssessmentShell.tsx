@@ -116,8 +116,6 @@ export function AssessmentShell({ onComplete }: AssessmentShellProps) {
 
     if (step < 4) {
       setStep(step + 1);
-    } else {
-      onComplete(); // e.g. reset
     }
   };
 
@@ -145,7 +143,7 @@ export function AssessmentShell({ onComplete }: AssessmentShellProps) {
 
           <FormProvider {...form}>
             {/* We intercept standard submission to handle it via steps, but keep form context active */}
-            <form onSubmit={(e) => { e.preventDefault(); handleNext(); }}>
+            <form onSubmit={(e) => { e.preventDefault(); if (step < 4) handleNext(); }}>
               {step === 1 && <Step1Profile onNext={handleNext} />}
               {step === 2 && <Step2DairyPlan onNext={handleNext} onBack={handleBack} />}
               
@@ -165,6 +163,7 @@ export function AssessmentShell({ onComplete }: AssessmentShellProps) {
                   stress={domainResults.stress}
                   decision={domainResults.decision}
                   onBack={handleBack}
+                  onReset={onComplete}
                 />
               )}
             </form>

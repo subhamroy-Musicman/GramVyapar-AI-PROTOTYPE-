@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Save } from "lucide-react";
+
+import { VoiceInputButton } from "../voice/VoiceInputButton";
 import { AssessmentData } from "./schema";
 
 interface Step1ProfileProps {
@@ -130,7 +132,24 @@ export function Step1Profile({ onNext }: Step1ProfileProps) {
             <FormField control={form.control} name="marginCapital" render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm font-semibold text-text-primary">Own capital available (₹) *</FormLabel>
-                <FormControl><Input type="number" className="h-11 bg-white border-border-subtle focus-visible:ring-brand-700 tabular-nums" {...field} /></FormControl>
+                <div className="flex gap-2 items-center">
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      className="flex-1 h-11 bg-white border-border-subtle focus-visible:ring-brand-700 tabular-nums" 
+                      {...field}
+                      onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
+                    />
+                  </FormControl>
+                  <VoiceInputButton 
+                    language="en" 
+                    fieldType="currency" 
+                    onConfirm={(value) => {
+                      field.onChange(value);
+                      form.trigger("marginCapital");
+                    }} 
+                  />
+                </div>
                 <FormMessage />
               </FormItem>
             )} />

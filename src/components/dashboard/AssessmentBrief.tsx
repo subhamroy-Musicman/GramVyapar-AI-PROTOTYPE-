@@ -5,6 +5,10 @@ import { StressAssessment } from "@/domain/stress/types";
 import { DecisionResult } from "@/domain/decision/types";
 import { DECISION_REASON_COPY } from "@/lib/presentation/decision-copy";
 import { AssessmentData } from "../assessment/schema";
+import { HyperLocalEvidence } from "../assessment/HyperLocalEvidence";
+import { AIAdvisory } from "../advisory/AIAdvisory";
+import { useState } from "react";
+import { EvidenceResult } from "@/domain/evidence/types";
 
 interface AssessmentBriefProps {
   data: AssessmentData; // Form data
@@ -12,9 +16,12 @@ interface AssessmentBriefProps {
   stress: StressAssessment;
   decision: DecisionResult;
   onBack: () => void;
+  onReset: () => void;
 }
 
-export function AssessmentBrief({ data, assessment, stress, decision, onBack }: AssessmentBriefProps) {
+export function AssessmentBrief({ data, assessment, stress, decision, onBack, onReset }: AssessmentBriefProps) {
+  const [terminalEvidence, setTerminalEvidence] = useState<EvidenceResult | 'UNAVAILABLE' | null>(null);
+
   const isProceed = decision.status === 'PROCEED';
   const isModify = decision.status === 'MODIFY';
   
@@ -282,7 +289,24 @@ export function AssessmentBrief({ data, assessment, stress, decision, onBack }: 
           </div>
         </section>
 
-        {/* SECTION H: TRANSPARENCY */}
+        {/* SECTION G: HYPER-LOCAL EVIDENCE */}
+        <HyperLocalEvidence 
+          villageTown={data.village} 
+          district={data.district} 
+          state={data.state} 
+          onTerminalState={setTerminalEvidence}
+        />
+
+        {/* SECTION H: AI ADVISORY */}
+        <AIAdvisory 
+          data={data}
+          assessment={assessment}
+          stress={stress}
+          decision={decision}
+          evidence={terminalEvidence}
+        />
+        
+        {/* SECTION I: TRANSPARENCY & ASSUMPTIONS */}
         <section className="bg-surface-subtle p-6 rounded-xl border border-border-subtle text-sm">
           <h3 className="font-semibold text-text-primary mb-3">How this assessment was calculated</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-text-secondary text-xs">
@@ -304,7 +328,7 @@ export function AssessmentBrief({ data, assessment, stress, decision, onBack }: 
 
       </div>
 
-      <div className="mt-10">
+      <div className="mt-10 flex flex-col md:flex-row items-center justify-between gap-4">
         <button 
           type="button" 
           onClick={onBack}
@@ -312,6 +336,13 @@ export function AssessmentBrief({ data, assessment, stress, decision, onBack }: 
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Edit assessment inputs
+        </button>
+        <button 
+          type="button" 
+          onClick={onReset}
+          className="h-12 px-6 bg-brand-main text-white font-semibold rounded-lg hover:bg-brand-dark transition-colors flex items-center shadow-sm"
+        >
+          Start New Assessment
         </button>
       </div>
 

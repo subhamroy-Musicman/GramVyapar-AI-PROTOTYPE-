@@ -1,99 +1,48 @@
-export type WeatherEvidenceResult =
-  | {
-      status: "AVAILABLE";
-      daily: {
-        maxTemp: number;
-        minTemp: number;
-        precipitationSum: number;
-      };
-      isHeatStressRisk: boolean;
-      isLogisticsRisk: boolean;
-    }
-  | {
-      status: "PROVIDER_UNAVAILABLE";
-      provider: "OPEN_METEO";
-      httpStatus?: number;
-      message?: string;
-    };
+import { EnvironmentalContext } from '@/domain/evidence/types';
 
-const weatherCache = new Map<string, WeatherEvidenceResult>();
-const CACHE_VERSION = "v1";
-
-export async function fetchWeather(lat: number, lon: number): Promise<WeatherEvidenceResult> {
-  const roundedLat = lat.toFixed(3);
-  const roundedLon = lon.toFixed(3);
-  const cacheKey = `openmeteo:${roundedLat}:${roundedLon}:${CACHE_VERSION}`;
+export async function fetchWeather(lat: number, lon: number): Promise<EnvironmentalContext> {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto&forecast_days=1`;
   
-  if (weatherCache.has(cacheKey)) {
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[evidence] openmeteo cache hit: ${cacheKey}`);
-    }
-    return weatherCache.get(cacheKey)!;
-  }
-
   try {
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[evidence] openmeteo request started`);
-    }
-    const response = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto`,
-      {
-        signal: AbortSignal.timeout(10000)
-      }
-    );
-    
-    if (!response.ok) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`[evidence] openmeteo failed status=${response.status}`);
-      }
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.error('[Open-Meteo] Provider failure:', res.status);
       return {
-        status: "PROVIDER_UNAVAILABLE",
-        provider: "OPEN_METEO",
-        httpStatus: response.status
+        source: 'OPEN_METEO',
+        providerAvailable: false,
+        maxTemp: null,
+        minTemp: null,
+        precipitation: null
       };
     }
     
-    const data = await response.json();
-    if (!data.daily) {
-      return {
-        status: "PROVIDER_UNAVAILABLE",
-        provider: "OPEN_METEO",
-        message: "No daily data found"
-      };
+    const data = await res.json();
+    
+    let maxTemp = null;
+    let minTemp = null;
+    let precipitation = null;
+    
+    if (data.daily) {
+      if (data.daily.temperature_2m_max?.length > 0) maxTemp = data.daily.temperature_2m_max[0];
+      if (data.daily.temperature_2m_min?.length > 0) minTemp = data.daily.temperature_2m_min[0];
+      if (data.daily.precipitation_sum?.length > 0) precipitation = data.daily.precipitation_sum[0];
     }
-    
-    const maxTemp = data.daily.temperature_2m_max[0] ?? 30;
-    const minTemp = data.daily.temperature_2m_min[0] ?? 20;
-    const precipitationSum = data.daily.precipitation_sum[0] ?? 0;
-    
-    const isHeatStressRisk = maxTemp > 38;
-    const isLogisticsRisk = precipitationSum > 20;
-    
-    const result: WeatherEvidenceResult = {
-      status: "AVAILABLE",
-      daily: {
-        maxTemp,
-        minTemp,
-        precipitationSum
-      },
-      isHeatStressRisk,
-      isLogisticsRisk
-    };
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[evidence] openmeteo success. maxTemp=${maxTemp}`);
-    }
-    
-    weatherCache.set(cacheKey, result);
-    return result;
-  } catch (error: unknown) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error(`[evidence] openmeteo error:`, error);
-    }
+
     return {
-      status: "PROVIDER_UNAVAILABLE",
-      provider: "OPEN_METEO",
-      message: (error as Error).message
+      source: 'OPEN_METEO',
+      providerAvailable: true,
+      maxTemp,
+      minTemp,
+      precipitation
+    };
+  } catch (error) {
+    console.error('[Open-Meteo] Network error:', error);
+    return {
+      source: 'OPEN_METEO',
+      providerAvailable: false,
+      maxTemp: null,
+      minTemp: null,
+      precipitation: null
     };
   }
 }
