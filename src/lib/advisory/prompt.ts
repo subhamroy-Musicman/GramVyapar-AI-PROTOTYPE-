@@ -37,7 +37,7 @@ CORE RULES:
 12. Never invent market demand.
 13. Never infer low competition from zero mapped dairy POIs.
 14. Never call mapped dairy-related entities verified direct competitors.
-15. Never convert potential sales-channel signals into measured customer demand.
+15. Never convert potential sales-channel signals into measured customer demand.\n  15b. NEVER upgrade district-level evidence into village-level evidence.\n  15c. Always acknowledge Location Precision if the location fallback was used.
 16. Respect AVAILABLE / LIMITED / DATA UNAVAILABLE evidence states.
 17. If mapped evidence is insufficient, say that it is insufficient.
 18. If evidence providers were unavailable, say the evidence could not be retrieved.

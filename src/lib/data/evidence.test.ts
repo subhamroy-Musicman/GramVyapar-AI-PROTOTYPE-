@@ -13,6 +13,7 @@ describe('evidence orchestrator', () => {
   const mockLocation: ResolvedLocation = {
     originalInput: 'Test',
     resolvedDisplayName: 'Test, District, State',
+    resolutionLevel: 'LOCALITY',
     latitude: 10,
     longitude: 20,
     source: 'NOMINATIM'
@@ -20,7 +21,7 @@ describe('evidence orchestrator', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(geocoding.geocodeLocation).mockResolvedValue(mockLocation);
+    vi.mocked(geocoding.geocodeLocation).mockResolvedValue({ status: 'SUCCESS', location: { ...mockLocation, resolutionLevel: 'LOCALITY' } as any });
     vi.mocked(openmeteo.fetchWeather).mockResolvedValue({
       source: 'OPEN_METEO',
       providerAvailable: true,
@@ -31,7 +32,7 @@ describe('evidence orchestrator', () => {
   });
 
   it('handles geocode failure safely', async () => {
-    vi.mocked(geocoding.geocodeLocation).mockResolvedValue(null);
+    vi.mocked(geocoding.geocodeLocation).mockResolvedValue({ status: 'NOT_FOUND' });
     const result = await buildEvidenceResult('Unknown', 'Unknown', 'State');
     expect(result.availability).toBe('PROVIDER_UNAVAILABLE');
     expect(result.dairySpecificConfidence).toBe('INSUFFICIENT');

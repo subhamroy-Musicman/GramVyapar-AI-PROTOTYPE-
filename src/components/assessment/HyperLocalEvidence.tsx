@@ -12,79 +12,98 @@ interface HyperLocalEvidenceProps {
 }
 
 export function HyperLocalEvidence({ villageTown, district, state, onTerminalState }: HyperLocalEvidenceProps) {
-  const [evidence, setEvidence] = useState<EvidenceResult | null>(null);
+  const [evidence, setEvidence] = useState<EvidenceResult & { geocodeStatus?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [currentRequest, setCurrentRequest] = useState('');
 
-  useEffect(() => {
-    const requestKey = `${villageTown}|${district}|${state}`;
-    let mounted = true;
-    
-    async function fetchEvidence() {
-      try {
-        setLoading(true);
-        setEvidence(null);
-        setError(false);
-        setCurrentRequest(requestKey);
+  const requestKey = `${villageTown}|${district}|${state}`;
 
-        const res = await fetch("/api/evidence", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ villageTown, district, state })
-        });
-        
-        if (!res.ok) throw new Error("Failed to fetch evidence");
-        const data = await res.json();
-        
-        if (mounted && requestKey === `${villageTown}|${district}|${state}`) {
-          setEvidence(data);
-          setError(false);
+  const fetchEvidence = async (isRetry = false) => {
+    try {
+      setLoading(true);
+      if (!isRetry) {
+        setEvidence(null);
+      }
+      setError(false);
+      setCurrentRequest(requestKey);
+
+      const res = await fetch("/api/evidence", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ villageTown, district, state })
+      });
+      
+      if (!res.ok) throw new Error("Failed to fetch evidence");
+      const data = await res.json();
+      
+      if (requestKey === `${villageTown}|${district}|${state}`) {
+        setEvidence(data);
+        setError(false);
+        if (data.geocodeStatus === 'SUCCESS') {
           onTerminalState?.(data);
-        }
-      } catch (err) {
-        console.error(err);
-        if (mounted && requestKey === `${villageTown}|${district}|${state}`) {
-          setError(true);
+        } else {
           onTerminalState?.('UNAVAILABLE');
         }
-      } finally {
-        if (mounted && requestKey === `${villageTown}|${district}|${state}`) {
-          setLoading(false);
-        }
+      }
+    } catch (err) {
+      console.error(err);
+      if (requestKey === `${villageTown}|${district}|${state}`) {
+        setError(true);
+        onTerminalState?.('UNAVAILABLE');
+      }
+    } finally {
+      if (requestKey === `${villageTown}|${district}|${state}`) {
+        setLoading(false);
       }
     }
-    
-    if (villageTown && district && state) {
-      fetchEvidence();
-    }
+  };
 
-    return () => {
-      mounted = false;
-    };
-  }, [villageTown, district, state, onTerminalState]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchEvidence();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestKey]);
 
-  if (loading) {
+  if (loading && !evidence) {
     return (
       <div className="bg-white p-6 md:p-8 rounded-xl shadow-sm border border-border-subtle flex flex-col items-center justify-center py-12">
         <Loader2 className="w-8 h-8 animate-spin text-brand-600 mb-4" />
-        <p className="text-sm font-medium text-text-secondary">Checking mapped local evidence...</p>
+        <p className="text-sm font-medium text-text-secondary">Resolving location & fetching mapped evidence...</p>
       </div>
     );
   }
 
-  if (error || !evidence) {
+  if (error || (evidence && evidence.geocodeStatus === 'PROVIDER_FAILURE')) {
     return (
       <div className="bg-white p-6 md:p-8 rounded-xl shadow-sm border border-border-subtle">
         <h3 className="text-lg font-serif mb-2 text-text-primary">Hyper-Local Evidence</h3>
         <p className="text-sm font-bold text-red-600 uppercase tracking-wider mb-2">DATA UNAVAILABLE</p>
-        <p className="text-sm text-text-secondary">Failed to load hyper-local evidence. The provider might be temporarily unavailable.</p>
+        <p className="text-sm text-text-secondary mb-4">Location service or evidence providers are temporarily unavailable.</p>
+        <button 
+          type="button" 
+          onClick={() => fetchEvidence(true)}
+          className="text-xs font-semibold bg-brand-50 text-brand-700 px-4 py-2 rounded-md hover:bg-brand-100 transition-colors"
+        >
+          {loading ? <Loader2 className="w-4 h-4 animate-spin inline mr-2" /> : null}
+          Retry local evidence
+        </button>
       </div>
     );
   }
 
-  // Geocoding failure
-  if (!evidence.location) {
+  if (evidence && evidence.geocodeStatus === 'NOT_FOUND') {
+    return (
+      <div className="bg-white p-6 md:p-8 rounded-xl shadow-sm border border-border-subtle">
+        <h3 className="text-lg font-serif mb-2 text-text-primary">Hyper-Local Evidence</h3>
+        <p className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">DATA UNAVAILABLE</p>
+        <p className="text-sm text-text-secondary">We could not confidently resolve this location exactly. Mapped evidence is unavailable.</p>
+      </div>
+    );
+  }
+
+  // Fallback for null location when it should be SUCCESS (just in case)
+  if (!evidence || !evidence.location) {
     return (
       <div className="bg-white p-6 md:p-8 rounded-xl shadow-sm border border-border-subtle">
         <h3 className="text-lg font-serif mb-2 text-text-primary">Hyper-Local Evidence</h3>
@@ -101,7 +120,15 @@ export function HyperLocalEvidence({ villageTown, district, state, onTerminalSta
         <h3 className="text-lg font-serif mb-2 text-text-primary">Hyper-Local Evidence</h3>
         <p className="text-xs text-text-secondary mb-4">Evidence for: {evidence.location.resolvedDisplayName}</p>
         <p className="text-sm font-bold text-amber-700 uppercase tracking-wider mb-2">DATA UNAVAILABLE</p>
-        <p className="text-sm text-text-secondary">Evidence providers could not be reached. Local area activity cannot be evaluated at this time.</p>
+        <p className="text-sm text-text-secondary mb-4">Evidence providers could not be reached. Local area activity cannot be evaluated at this time.</p>
+        <button 
+          type="button" 
+          onClick={() => fetchEvidence(true)}
+          className="text-xs font-semibold bg-brand-50 text-brand-700 px-4 py-2 rounded-md hover:bg-brand-100 transition-colors"
+        >
+          {loading ? <Loader2 className="w-4 h-4 animate-spin inline mr-2" /> : null}
+          Retry local evidence
+        </button>
       </div>
     );
   }
@@ -116,14 +143,27 @@ export function HyperLocalEvidence({ villageTown, district, state, onTerminalSta
     return `${radius[key].length} mapped`;
   };
 
+  const isDistrictFallback = evidence.location.resolutionLevel === 'DISTRICT';
+
   return (
     <section className="bg-white p-6 md:p-8 rounded-xl shadow-sm border border-border-subtle">
       <div className="flex justify-between items-start mb-6">
         <div>
           <h3 className="text-lg font-serif text-text-primary mb-1">Hyper-Local Evidence</h3>
-          <p className="text-xs text-text-secondary">
+          <p className="text-xs text-text-secondary mb-2">
             Evidence for: {evidence.location.resolvedDisplayName}
           </p>
+          <div className="inline-flex items-center gap-1.5">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Location Precision:</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${isDistrictFallback ? 'bg-amber-100 text-amber-800' : 'bg-brand-50 text-brand-700'}`}>
+              {isDistrictFallback ? 'DISTRICT-LEVEL FALLBACK' : evidence.location.resolutionLevel}
+            </span>
+          </div>
+          {isDistrictFallback && (
+            <p className="text-[11px] text-amber-700 mt-1 italic">
+              Exact locality could not be resolved. Using district-level location fallback.
+            </p>
+          )}
         </div>
         <div className={`text-[10px] font-bold px-2 py-1 rounded border tracking-wider uppercase ${
           topLevelStatus === 'AVAILABLE' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
@@ -137,22 +177,6 @@ export function HyperLocalEvidence({ villageTown, district, state, onTerminalSta
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
         {/* Left Column */}
         <div className="space-y-4">
-          <div className="flex flex-col border-b border-border-subtle py-2">
-            <span className="text-sm font-semibold text-text-primary mb-2">Potential Sales-Channel Signals</span>
-            <div className="flex justify-between text-sm mb-1">
-              <span className="text-text-secondary">Within 5 km</span>
-              <span className={`font-medium ${!evidence.radius5km?.providerAvailable ? 'text-slate-400 italic' : 'text-text-primary'}`}>
-                {formatCount(evidence.radius5km, 'potentialSalesChannels')}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-text-secondary">Within 10 km</span>
-              <span className={`font-medium ${!evidence.radius10km?.providerAvailable ? 'text-slate-400 italic' : 'text-text-primary'}`}>
-                {formatCount(evidence.radius10km, 'potentialSalesChannels')}
-              </span>
-            </div>
-          </div>
-
           <div className="flex flex-col border-b border-border-subtle py-2">
             <span className="text-sm font-semibold text-text-primary mb-2">Mapped Dairy Activity</span>
             <div className="flex justify-between text-sm mb-1">
@@ -170,7 +194,23 @@ export function HyperLocalEvidence({ villageTown, district, state, onTerminalSta
           </div>
 
           <div className="flex flex-col border-b border-border-subtle py-2">
-            <span className="text-sm font-semibold text-text-primary mb-2">Veterinary / Support Infrastructure</span>
+            <span className="text-sm font-semibold text-text-primary mb-2">Potential Sales Channels</span>
+            <div className="flex justify-between text-sm mb-1">
+              <span className="text-text-secondary">Within 5 km</span>
+              <span className={`font-medium ${!evidence.radius5km?.providerAvailable ? 'text-slate-400 italic' : 'text-text-primary'}`}>
+                {formatCount(evidence.radius5km, 'potentialSalesChannels')}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-text-secondary">Within 10 km</span>
+              <span className={`font-medium ${!evidence.radius10km?.providerAvailable ? 'text-slate-400 italic' : 'text-text-primary'}`}>
+                {formatCount(evidence.radius10km, 'potentialSalesChannels')}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-col border-b border-border-subtle py-2">
+            <span className="text-sm font-semibold text-text-primary mb-2">Support Infrastructure</span>
             <div className="flex justify-between text-sm mb-1">
               <span className="text-text-secondary">Within 5 km</span>
               <span className={`font-medium ${!evidence.radius5km?.providerAvailable ? 'text-slate-400 italic' : 'text-text-primary'}`}>
@@ -189,12 +229,12 @@ export function HyperLocalEvidence({ villageTown, district, state, onTerminalSta
         {/* Right Column */}
         <div className="space-y-4 pt-1">
           <div className="flex justify-between items-center py-2 border-b border-border-subtle">
-            <span className="text-sm font-semibold text-text-secondary">Dairy-Specific Evidence</span>
-            <span className="font-bold text-text-primary uppercase">{evidence.dairySpecificConfidence}</span>
+            <span className="text-sm font-semibold text-text-secondary">Evidence Status</span>
+            <span className="font-bold text-text-primary uppercase">{topLevelStatus}</span>
           </div>
           <div className="flex justify-between items-center py-2 border-b border-border-subtle">
-            <span className="text-sm font-semibold text-text-secondary">Mapped Dairy Activity</span>
-            <span className="font-bold text-text-primary uppercase">{evidence.competitiveSignal}</span>
+            <span className="text-sm font-semibold text-text-secondary">Dairy-Specific Evidence</span>
+            <span className="font-bold text-text-primary uppercase">{evidence.dairySpecificConfidence}</span>
           </div>
           
           <div className="bg-surface-subtle p-3 rounded-lg border border-border-subtle mt-4">
@@ -204,7 +244,7 @@ export function HyperLocalEvidence({ villageTown, district, state, onTerminalSta
             </p>
             {(!evidence.radius5km?.providerAvailable || !evidence.radius10km?.providerAvailable) && (
               <p className="text-xs text-amber-700 leading-relaxed mt-2 italic">
-                * Note: Some local evidence radii could not be fetched due to provider unavailability.
+                * Some local evidence radii could not be fetched due to provider unavailability.
               </p>
             )}
           </div>

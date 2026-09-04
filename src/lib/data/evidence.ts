@@ -5,7 +5,8 @@ import {
   EvidenceAvailability,
   EvidenceConfidence,
   ResolvedLocation,
-  EnvironmentalContext
+  EnvironmentalContext,
+  GeocodeStatus
 } from '../../domain/evidence/types';
 import { geocodeLocation } from './geocoding';
 import { fetchOsmCandidates, OsmCandidate } from './osm';
@@ -14,11 +15,18 @@ import { calculateHaversineDistance } from '../geo/distance';
 import { classifyPOI } from '../classification/poi';
 import { EVIDENCE_CONFIG } from '../../config/evidence';
 
-export async function buildEvidenceResult(villageTown: string, district: string, state: string): Promise<EvidenceResult> {
-  const location = await geocodeLocation(villageTown, district, state);
+export async function buildEvidenceResult(villageTown: string, district: string, state: string): Promise<EvidenceResult & { geocodeStatus?: GeocodeStatus }> {
+  const geocode = await geocodeLocation(villageTown, district, state);
   
-  if (!location) {
-    return createEmptyResult();
+  if (geocode.status !== 'SUCCESS' || !geocode.location) {
+    return { ...createEmptyResult(), geocodeStatus: geocode.status };
+  }
+
+  const location = geocode.location;
+
+  // Rule: Do not run OSM for STATE resolution level
+  if (location.resolutionLevel === 'STATE') {
+    return { ...createEmptyResult(), location, geocodeStatus: 'SUCCESS', availability: 'PROVIDER_UNAVAILABLE' };
   }
 
   const [osm5km, osm10km, weather] = await Promise.allSettled([
@@ -57,6 +65,7 @@ export async function buildEvidenceResult(villageTown: string, district: string,
     competitiveSignal,
     salesChannelSignal,
     confidenceReason,
+    geocodeStatus: 'SUCCESS',
     limitations: [
       "Mapped POIs may not represent all real-world businesses.",
       "Absence of mapped dairy businesses does not imply absence of competition.",
@@ -87,13 +96,8 @@ function deduplicateItems(items: EvidenceItem[]): EvidenceItem[] {
   return output;
 }
 
-function buildRadiusEvidence(
-  radiusKm: 5 | 10, 
-  originLat: number, 
-  originLon: number, 
-  candidates: OsmCandidate[] | null
-): RadiusEvidence {
-  if (candidates === null) {
+function buildRadiusEvidence(radiusKm: 5 | 10, lat: number, lon: number, candidates: OsmCandidate[] | null): RadiusEvidence {
+  if (!candidates) {
     return {
       radiusKm,
       providerAvailable: false,
@@ -104,53 +108,42 @@ function buildRadiusEvidence(
     };
   }
 
-  let directDairySignals: EvidenceItem[] = [];
-  let potentialSalesChannels: EvidenceItem[] = [];
-  let supportInfrastructure: EvidenceItem[] = [];
+  const directDairySignals: EvidenceItem[] = [];
+  const potentialSalesChannels: EvidenceItem[] = [];
+  const supportInfrastructure: EvidenceItem[] = [];
 
-  for (const candidate of candidates) {
-    const classification = classifyPOI(candidate);
+  for (const c of candidates) {
+    const classification = classifyPOI(c);
     if (!classification.category) continue;
 
-    const distanceKm = calculateHaversineDistance(originLat, originLon, candidate.latitude, candidate.longitude);
-    
-    // Only include if actually within radius (bounding box from overpass might include slight outliers)
-    if (distanceKm > radiusKm) continue;
+    const distance = calculateHaversineDistance(lat, lon, c.latitude, c.longitude);
+    if (distance > radiusKm) continue;
 
     const item: EvidenceItem = {
       source: 'OPENSTREETMAP',
-      sourceId: candidate.id,
-      name: candidate.name,
-      latitude: candidate.latitude,
-      longitude: candidate.longitude,
-      distanceKm,
+      sourceId: c.id,
+      name: c.name,
+      latitude: c.latitude,
+      longitude: c.longitude,
+      distanceKm: distance,
       category: classification.category,
       classificationReason: classification.classificationReason,
       matchedTerm: classification.matchedTerm,
-      relevantTags: candidate.tags
+      relevantTags: c.tags
     };
 
-    if (item.category === 'DIRECT_DAIRY_SIGNAL') {
-      directDairySignals.push(item);
-    } else if (item.category === 'POTENTIAL_SALES_CHANNEL') {
-      potentialSalesChannels.push(item);
-    } else if (item.category === 'SUPPORT_INFRASTRUCTURE') {
-      supportInfrastructure.push(item);
-    }
+    if (item.category === 'DIRECT_DAIRY_SIGNAL') directDairySignals.push(item);
+    if (item.category === 'POTENTIAL_SALES_CHANNEL') potentialSalesChannels.push(item);
+    if (item.category === 'SUPPORT_INFRASTRUCTURE') supportInfrastructure.push(item);
   }
-
-  // Deduplicate before returning
-  directDairySignals = deduplicateItems(directDairySignals);
-  potentialSalesChannels = deduplicateItems(potentialSalesChannels);
-  supportInfrastructure = deduplicateItems(supportInfrastructure);
 
   return {
     radiusKm,
     providerAvailable: true,
     rawCandidateCount: candidates.length,
-    directDairySignals,
-    potentialSalesChannels,
-    supportInfrastructure
+    directDairySignals: deduplicateItems(directDairySignals),
+    potentialSalesChannels: deduplicateItems(potentialSalesChannels),
+    supportInfrastructure: deduplicateItems(supportInfrastructure)
   };
 }
 
@@ -258,6 +251,19 @@ function calculateConfidence(
   };
 }
 
+// DUMMY TO KEEP EXISTING STEP 4 COMPILED WITHOUT MODIFICATION
+import { LiveEvidence } from '@/types/evidence';
+export async function gatherLiveEvidence(village: string, district: string, state: string): Promise<LiveEvidence> {
+  return {
+    geocode: null,
+    marketReach: null,
+    competitorSignal: null,
+    veterinaryAccess: null,
+    weatherRisk: null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any;
+}
+
 function createEmptyResult(): EvidenceResult {
   return {
     location: null,
@@ -279,18 +285,4 @@ function createEmptyResult(): EvidenceResult {
     limitations: []
   };
 }
-
-// DUMMY TO KEEP EXISTING STEP 4 COMPILED WITHOUT MODIFICATION
-import { LiveEvidence } from '@/types/evidence';
-export async function gatherLiveEvidence(village: string, district: string, state: string): Promise<LiveEvidence> {
-  return {
-    geocode: null,
-    marketReach: null,
-    competitorSignal: null,
-    veterinaryAccess: null,
-    weatherRisk: null
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any;
-}
-
 

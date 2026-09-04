@@ -2,10 +2,10 @@
 
 import { AssessmentShell } from "@/components/assessment/AssessmentShell";
 import Image from "next/image";
-import { LanguageProvider, useLanguage } from "@/lib/i18n/LanguageContext";
-import { SUPPORTED_LANGUAGES, LanguageCode } from "@/lib/i18n/config";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Globe, HelpCircle } from "lucide-react";
+
+
+
+
 
 
 
@@ -56,8 +56,8 @@ function MainApp() {
 
 export default function Home() {
   return (
-    <LanguageProvider>
+    
       <MainApp />
-    </LanguageProvider>
+    
   );
 }

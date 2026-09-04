@@ -50,6 +50,7 @@ export interface AdvisoryInput {
   localEvidence: {
     evidenceStatus: string;
     resolvedLocation?: string;
+    locationPrecision?: string;
     radius5km: {
       providerAvailable: boolean;
       directDairySignals: number;

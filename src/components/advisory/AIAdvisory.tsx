@@ -260,17 +260,17 @@ export function AIAdvisory({ data, assessment, stress, decision, evidence }: AIA
                 </button>
                 {ttsState === 'UNSUPPORTED' && (
                   <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-100">
-                    Audio playback isn't supported in this browser.
+                    Audio playback isn&apos;t supported in this browser.
                   </span>
                 )}
                 {ttsState === 'ERROR' && (
                   <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-100">
-                    Audio playback couldn't start. You can continue reading the advisory.
+                    Audio playback couldn&apos;t start. You can continue reading the advisory.
                   </span>
                 )}
                 {ttsState === 'NO_VOICE_FALLBACK' && (
-                  <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-100 max-w-[250px] inline-block truncate" title={`A ${getLanguageName(language)} system voice was not found. Trying the browser's available voice.`}>
-                    A {getLanguageName(language)} system voice was not found. Trying the browser's available voice.
+                  <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-100 max-w-[250px] inline-block truncate" title={`A ${getLanguageName(language)} system voice was not found. Trying the browser&apos;s available voice.`}>
+                    A {getLanguageName(language)} system voice was not found. Trying the browser&apos;s available voice.
                   </span>
                 )}
               </div>

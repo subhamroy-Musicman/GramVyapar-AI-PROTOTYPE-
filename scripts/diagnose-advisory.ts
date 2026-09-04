@@ -28,12 +28,14 @@ async function run() {
   const decision = evaluateDecision(stress);
 
   // Fake evidence for diagnostic
+  const locationInput = "Pune";
   const evidence: EvidenceResult = {
     location: {
-      originalInput: "Pune",
-      resolvedDisplayName: "Pune, Maharashtra",
-      latitude: 18.52,
-      longitude: 73.85,
+      originalInput: locationInput,
+      resolvedDisplayName: locationInput + ", Demo District, Demo State",
+      resolutionLevel: 'LOCALITY',
+      latitude: 19.076,
+      longitude: 72.877,
       source: 'NOMINATIM'
     },
     radius5km: { radiusKm: 5, providerAvailable: true, rawCandidateCount: 10, directDairySignals: [{} as any, {} as any, {} as any], potentialSalesChannels: new Array(66).fill({}), supportInfrastructure: [] },

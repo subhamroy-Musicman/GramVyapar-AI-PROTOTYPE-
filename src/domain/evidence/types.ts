@@ -11,12 +11,38 @@ export interface EntrepreneurLocation {
   state: string;
 }
 
+export type LocationResolutionLevel = 
+  | 'LOCALITY'
+  | 'DISTRICT'
+  | 'STATE'
+  | 'DEVICE_LOCATION'
+  | 'MANUAL_COORDINATE'
+  | 'UNRESOLVED';
+
 export interface ResolvedLocation {
   originalInput: string;
   resolvedDisplayName: string;
   latitude: number;
   longitude: number;
   source: 'NOMINATIM';
+  resolutionLevel: LocationResolutionLevel;
+}
+
+export type GeocodeStatus = 
+  | 'SUCCESS'
+  | 'AMBIGUOUS_LOCATION'
+  | 'NOT_FOUND'
+  | 'PROVIDER_FAILURE';
+
+export interface AmbiguousLocationResult {
+  status: 'AMBIGUOUS_LOCATION';
+  candidates: ResolvedLocation[];
+}
+
+export interface GeocodeResult {
+  status: GeocodeStatus;
+  location?: ResolvedLocation;
+  candidates?: ResolvedLocation[];
 }
 
 export interface EvidenceItem {
