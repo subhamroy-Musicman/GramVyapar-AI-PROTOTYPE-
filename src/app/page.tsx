@@ -23,7 +23,7 @@ function MainApp() {
               aria-label="GramVyapar AI home"
             >
               <div className="rounded-[6px] overflow-hidden flex items-center justify-center bg-white shrink-0 border border-border-subtle">
-                <Image src="/logo.png" alt="GramVyapar AI Logo" width={32} height={32} className="w-8 h-8 object-contain p-0.5" />
+                <Image src="/gramvyapar-logo.jpg" alt="GramVyapar AI Logo" width={48} height={48} className="w-12 h-12 object-contain" />
               </div>
               <div>
                 <h1 className="text-[18px] font-bold text-text-primary tracking-tight leading-none">

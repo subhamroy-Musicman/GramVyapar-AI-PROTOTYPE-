@@ -193,3 +193,71 @@ export class BrowserTTSProvider {
     }
   }
 }
+
+export class GeminiTTSProvider {
+  private currentAudio: HTMLAudioElement | null = null;
+  private currentAbortController: AbortController | null = null;
+
+  isSupported(): boolean {
+    return typeof window !== 'undefined' && typeof window.Audio !== 'undefined';
+  }
+
+  async speak(text: string, language: SupportedLanguage): Promise<void> {
+    if (!this.isSupported()) {
+      throw new Error("Audio unsupported");
+    }
+
+    this.stop();
+
+    const abortController = new AbortController();
+    this.currentAbortController = abortController;
+
+    const res = await fetch('/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, language }),
+      signal: abortController.signal
+    });
+
+    if (!res.ok) {
+      throw new Error(`Server TTS failed: ${res.statusText}`);
+    }
+
+    const blob = await res.blob();
+    if (abortController.signal.aborted) return;
+
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    this.currentAudio = audio;
+
+    return new Promise((resolve, reject) => {
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        this.currentAudio = null;
+        resolve();
+      };
+      audio.onerror = (e) => {
+        URL.revokeObjectURL(url);
+        this.currentAudio = null;
+        reject(new Error("Audio playback failed"));
+      };
+      audio.play().catch(e => {
+        URL.revokeObjectURL(url);
+        this.currentAudio = null;
+        reject(e);
+      });
+    });
+  }
+
+  stop(): void {
+    if (this.currentAbortController) {
+      this.currentAbortController.abort();
+      this.currentAbortController = null;
+    }
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      this.currentAudio.currentTime = 0;
+      this.currentAudio = null;
+    }
+  }
+}

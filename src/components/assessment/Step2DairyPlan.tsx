@@ -85,7 +85,7 @@ export function Step2DairyPlan({ onNext, onBack }: Step2DairyPlanProps) {
             )} />
 
             <FormField control={form.control} name="animalPurchaseCost" render={({ field }) => (
-              <FormItem className="md:col-span-2">
+              <FormItem>
                 <FormLabel className="text-sm font-semibold text-text-primary">Purchase cost per animal *</FormLabel>
                 <FormControl><CurrencyInput field={field} /></FormControl>
                 <FormDescription className="text-[11px]">Use your expected purchase cost per animal. This is treated as a user input, not a live market price.</FormDescription>
@@ -215,7 +215,7 @@ export function Step2DairyPlan({ onNext, onBack }: Step2DairyPlanProps) {
             )} />
 
             <FormField control={form.control} name="otherOperatingAnnual" render={({ field }) => (
-              <FormItem className="md:col-span-2">
+              <FormItem>
                 <FormLabel className="text-sm font-semibold text-text-primary flex justify-between">
                   <span>Other operating expenses</span>
                   <span className="text-[10px] text-text-secondary bg-surface-subtle px-1.5 py-0.5 rounded uppercase tracking-wide">Annual</span>

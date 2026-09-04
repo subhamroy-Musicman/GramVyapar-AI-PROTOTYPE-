@@ -8,7 +8,7 @@ import { StressAssessment } from "@/domain/stress/types";
 import { DecisionResult } from "@/domain/decision/types";
 import { EvidenceResult } from "@/domain/evidence/types";
 import { AdvisoryResult, SupportedLanguage } from "@/domain/advisory/types";
-import { BrowserTTSProvider } from "@/lib/voice/providers";
+import { BrowserTTSProvider, GeminiTTSProvider } from "@/lib/voice/providers";
 
 interface AIAdvisoryProps {
   data: AssessmentData;
@@ -162,12 +162,14 @@ export function AIAdvisory({ data, assessment, stress, decision, evidence }: AIA
   };
 
   // TTS State
-  const [ttsState, setTtsState] = useState<'IDLE' | 'SPEAKING' | 'ERROR' | 'UNSUPPORTED' | 'NO_VOICE_FALLBACK'>('IDLE');
-  const ttsProviderRef = useRef<BrowserTTSProvider | null>(null);
+  const [ttsState, setTtsState] = useState<'IDLE' | 'LOADING' | 'SPEAKING' | 'ERROR' | 'UNSUPPORTED' | 'NO_VOICE_FALLBACK'>('IDLE');
+  const browserTtsProviderRef = useRef<BrowserTTSProvider | null>(null);
+  const geminiTtsProviderRef = useRef<GeminiTTSProvider | null>(null);
 
   useEffect(() => {
-    ttsProviderRef.current = new BrowserTTSProvider();
-    if (!ttsProviderRef.current.isSupported()) {
+    browserTtsProviderRef.current = new BrowserTTSProvider();
+    geminiTtsProviderRef.current = new GeminiTTSProvider();
+    if (!browserTtsProviderRef.current.isSupported() && !geminiTtsProviderRef.current.isSupported()) {
       setTtsState('UNSUPPORTED');
     }
   }, []);
@@ -179,50 +181,74 @@ export function AIAdvisory({ data, assessment, stress, decision, evidence }: AIA
 
   // Stop TTS immediately on unmount or stale state changes (language/assessment/advisory change)
   useEffect(() => {
-    if (isAdvisoryStale && ttsProviderRef.current) {
-      ttsProviderRef.current.stop();
-      if (ttsState === 'SPEAKING' || ttsState === 'NO_VOICE_FALLBACK') setTtsState('IDLE');
+    if (isAdvisoryStale) {
+      browserTtsProviderRef.current?.stop();
+      geminiTtsProviderRef.current?.stop();
+      if (ttsState === 'SPEAKING' || ttsState === 'NO_VOICE_FALLBACK' || ttsState === 'LOADING') setTtsState('IDLE');
     }
   }, [isAdvisoryStale, ttsState]);
 
   useEffect(() => {
     return () => {
-      if (ttsProviderRef.current) {
-        ttsProviderRef.current.stop();
-      }
+      browserTtsProviderRef.current?.stop();
+      geminiTtsProviderRef.current?.stop();
     };
   }, []);
 
+  // Text Cleaner before TTS
+  const cleanForSpeech = (text: string) => {
+    return text.replace(/\*\*/g, '').replace(/\*/g, '').replace(/-/g, '').replace(/[\r\n]+/g, ' ').trim();
+  };
+
   const handleToggleVoice = async () => {
-    if (!ttsProviderRef.current || ttsState === 'UNSUPPORTED') return;
+    if (ttsState === 'UNSUPPORTED') return;
     
-    if (ttsState === 'SPEAKING' || ttsState === 'NO_VOICE_FALLBACK') {
-      ttsProviderRef.current.stop();
+    if (ttsState === 'SPEAKING' || ttsState === 'NO_VOICE_FALLBACK' || ttsState === 'LOADING') {
+      browserTtsProviderRef.current?.stop();
+      geminiTtsProviderRef.current?.stop();
       setTtsState('IDLE');
       return;
     }
 
     if (!advisory || isAdvisoryStale) return;
 
-    setTtsState('SPEAKING');
+    setTtsState('LOADING');
+
+    let textToSpeak = `${advisory?.summary}. ${advisory?.whyThisDecision}. `;
+    if (advisory?.recommendedActions && advisory?.recommendedActions.length > 0) {
+      textToSpeak += `Recommendations: ${advisory?.recommendedActions.join('. ')}.`;
+    }
+    textToSpeak = cleanForSpeech(textToSpeak);
 
     try {
-      // Compose text explicitly
-      let textToSpeak = `${advisory?.summary}. ${advisory?.whyThisDecision}. `;
-      if (advisory?.recommendedActions && advisory?.recommendedActions.length > 0) {
-        textToSpeak += `Recommendations: ${advisory?.recommendedActions.join('. ')}.`;
+      // 1. Try Gemini TTS
+      if (geminiTtsProviderRef.current && geminiTtsProviderRef.current.isSupported()) {
+        await geminiTtsProviderRef.current.speak(textToSpeak, language);
+        // It plays and finishes
+        setTtsState('IDLE');
+        return;
       }
+    } catch (e: any) {
+      console.warn("Server TTS failed, falling back to browser TTS", e);
+      if (e.name === 'AbortError' || e.message?.includes('aborted')) return; // Was cancelled
+    }
 
-      await ttsProviderRef.current.speak(textToSpeak, language, (fallbackUsed) => {
-        if (fallbackUsed) {
-          setTtsState('NO_VOICE_FALLBACK');
-        } else {
-          setTtsState('SPEAKING');
-        }
-      });
-      setTtsState('IDLE');
-    } catch (e) {
-      console.error("TTS Error:", e);
+    // 2. Fallback to Browser TTS
+    try {
+      if (browserTtsProviderRef.current && browserTtsProviderRef.current.isSupported()) {
+        await browserTtsProviderRef.current.speak(textToSpeak, language, (fallbackUsed) => {
+          if (fallbackUsed) {
+            setTtsState('NO_VOICE_FALLBACK');
+          } else {
+            setTtsState('SPEAKING');
+          }
+        });
+        setTtsState('IDLE');
+      } else {
+        setTtsState('ERROR');
+      }
+    } catch (e: any) {
+      console.error("Browser TTS Error:", e);
       setTtsState('ERROR');
     }
   };
@@ -252,11 +278,13 @@ export function AIAdvisory({ data, assessment, stress, decision, evidence }: AIA
                   type="button"
                   onClick={handleToggleVoice}
                   className="flex items-center gap-1.5 ml-2 text-xs font-medium px-2 py-1 bg-brand-50 text-brand-700 hover:bg-brand-100 rounded border border-brand-200 transition-colors"
-                  aria-label={ttsState === 'SPEAKING' || ttsState === 'NO_VOICE_FALLBACK' ? "Stop advisory audio" : "Listen to advisory"}
+                  aria-label={ttsState === 'SPEAKING' || ttsState === 'NO_VOICE_FALLBACK' || ttsState === 'LOADING' ? "Stop advisory audio" : "Listen to advisory"}
                   disabled={ttsState === 'UNSUPPORTED'}
                 >
-                  {ttsState === 'SPEAKING' || ttsState === 'NO_VOICE_FALLBACK' ? <Square className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-                  {ttsState === 'SPEAKING' || ttsState === 'NO_VOICE_FALLBACK' ? "Stop" : "Listen"}
+                  {ttsState === 'LOADING' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 
+                   ttsState === 'SPEAKING' || ttsState === 'NO_VOICE_FALLBACK' ? <Square className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                  {ttsState === 'LOADING' ? "Loading..." :
+                   ttsState === 'SPEAKING' || ttsState === 'NO_VOICE_FALLBACK' ? "Stop" : "Listen"}
                 </button>
                 {ttsState === 'UNSUPPORTED' && (
                   <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-100">
@@ -326,7 +354,7 @@ export function AIAdvisory({ data, assessment, stress, decision, evidence }: AIA
           </button>
         </div>
       ) : showAdvisory ? (
-        <div className="space-y-8 animate-in fade-in duration-500 relative">
+        <div className="space-y-8 animate-in fade-in duration-500 relative max-w-4xl">
           
           {loading && (
             <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-lg">
@@ -337,12 +365,12 @@ export function AIAdvisory({ data, assessment, stress, decision, evidence }: AIA
             </div>
           )}
 
-          <div>
+          <div className="max-w-3xl">
             <h4 className="text-sm font-bold text-text-primary mb-2">Summary</h4>
             <p className="text-text-secondary leading-relaxed">{advisory?.summary}</p>
           </div>
 
-          <div>
+          <div className="max-w-3xl">
             <h4 className="text-sm font-bold text-text-primary mb-2">Why This Decision</h4>
             <p className="text-text-secondary leading-relaxed">{advisory?.whyThisDecision}</p>
           </div>
@@ -373,12 +401,12 @@ export function AIAdvisory({ data, assessment, stress, decision, evidence }: AIA
             </div>
           </div>
 
-          <div>
+          <div className="max-w-3xl">
             <h4 className="text-sm font-bold text-text-primary mb-2">Stress-Test Interpretation</h4>
             <p className="text-text-secondary leading-relaxed text-sm">{advisory?.stressTestInterpretation}</p>
           </div>
 
-          <div>
+          <div className="max-w-3xl">
             <h4 className="text-sm font-bold text-text-primary mb-2">Local Evidence Context</h4>
             <p className="text-text-secondary leading-relaxed text-sm">{advisory?.localEvidenceContext}</p>
           </div>
@@ -396,7 +424,7 @@ export function AIAdvisory({ data, assessment, stress, decision, evidence }: AIA
           </div>
 
           <div className="mt-8 pt-6 border-t border-border-subtle">
-            <p className="text-xs text-slate-400 leading-relaxed italic">
+            <p className="text-xs text-slate-400 leading-relaxed italic max-w-3xl">
               {advisory?.disclaimer}
             </p>
           </div>

@@ -132,7 +132,7 @@ export function AssessmentShell({ onComplete }: AssessmentShellProps) {
 
       {/* Main Content Area */}
       <div className="flex-1 md:ml-[260px] flex justify-center">
-        <div className="w-full max-w-[840px] px-4 md:px-8 py-8 md:py-12">
+        <div className="w-full max-w-[1200px] px-4 md:px-8 py-8 md:py-12">
           
           {/* Mobile Step Indicator */}
           <div className="md:hidden mb-6 flex items-center gap-2 text-sm font-medium text-text-secondary">

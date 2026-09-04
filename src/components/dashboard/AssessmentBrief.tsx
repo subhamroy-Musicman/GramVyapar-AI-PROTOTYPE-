@@ -346,6 +346,12 @@ export function AssessmentBrief({ data, assessment, stress, decision, onBack, on
         </button>
       </div>
 
+      <footer className="mt-16 pt-6 border-t border-border-subtle text-center">
+        <p className="text-sm font-medium text-text-secondary">
+          Made by Team HackBlitz for SIH 2026
+        </p>
+      </footer>
+
     </div>
   );
 }

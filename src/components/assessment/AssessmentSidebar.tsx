@@ -56,18 +56,24 @@ export function AssessmentSidebar({ currentStep }: AssessmentSidebarProps) {
         </div>
 
         <div className="flex-1 flex flex-col gap-6 relative shrink-0">
-          <div className="absolute left-[11px] top-4 bottom-8 w-px bg-white/10 z-0"></div>
-          {steps.map((step) => {
+          {steps.map((step, index) => {
             const isCompleted = currentStep > step.num;
             const isCurrent = currentStep === step.num;
             const isFuture = currentStep < step.num;
+            const isLastStep = index === steps.length - 1;
 
             return (
               <div key={step.num} className={`relative z-10 flex gap-4 ${isFuture ? 'opacity-50' : 'opacity-100'} transition-opacity`}>
-                <div className={`shrink-0 w-[24px] h-[24px] rounded-full flex items-center justify-center text-xs font-bold border-2 
+                
+                {/* Dynamic Connector */}
+                {!isLastStep && (
+                  <div className="absolute left-[11px] top-[12px] bottom-[-36px] w-px bg-white/10 z-[-1]"></div>
+                )}
+
+                <div className={`relative shrink-0 w-[24px] h-[24px] rounded-full flex items-center justify-center text-xs font-bold border-2 
                   ${isCompleted ? 'bg-brand-50 border-brand-50 text-brand-900' : 
-                    isCurrent ? 'bg-transparent border-white text-white' : 
-                    'bg-transparent border-white/30 text-white/50'}`}>
+                    isCurrent ? 'bg-[#1F4A45] border-white text-white' : 
+                    'bg-[#1F4A45] border-white/30 text-white/50'}`}>
                   {isCompleted ? <CheckCircle2 className="w-4 h-4 text-[#1F4A45]" /> : (isFuture ? <Lock className="w-3 h-3" /> : step.num)}
                 </div>
                 <div className="pt-0.5">
