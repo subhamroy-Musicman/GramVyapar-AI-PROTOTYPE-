@@ -14,7 +14,7 @@ export function AssessmentSidebar({ currentStep }: AssessmentSidebarProps) {
     {
       num: 2,
       title: "Dairy Plan",
-      desc: "The shape of your proposed unit"
+      desc: "Your proposed dairy unit"
     },
     {
       num: 3,
@@ -24,12 +24,12 @@ export function AssessmentSidebar({ currentStep }: AssessmentSidebarProps) {
     {
       num: 4,
       title: "Assessment Brief",
-      desc: "Decision and recommended next steps"
+      desc: "Decision and next steps"
     }
   ];
 
   return (
-    <div className="hidden md:flex flex-col w-[260px] shrink-0 bg-[#1F4A45] text-white min-h-[calc(100vh-64px)] fixed left-0 top-[64px] border-r border-[#123524] z-10 p-6 overflow-y-auto">
+    <div className="hidden md:flex flex-col w-[260px] shrink-0 bg-[#1F4A45] text-white min-h-[calc(100vh-72px)] fixed left-0 top-[72px] border-r border-[#123524] z-10 p-6 overflow-y-auto">
       <div className="mb-8">
         <p className="text-[10px] font-bold tracking-widest text-[#DDE8E1]/70 uppercase mb-2">Your Path</p>
         <h2 className="text-2xl font-serif leading-tight">Four careful steps</h2>
@@ -61,12 +61,6 @@ export function AssessmentSidebar({ currentStep }: AssessmentSidebarProps) {
             </div>
           );
         })}
-      </div>
-
-      <div className="mt-12 pt-6 border-t border-white/10">
-        <p className="text-xs text-[#DDE8E1]/70 leading-relaxed">
-          Start with what you know today. You can refine the plan before making a borrowing decision.
-        </p>
       </div>
     </div>
   );

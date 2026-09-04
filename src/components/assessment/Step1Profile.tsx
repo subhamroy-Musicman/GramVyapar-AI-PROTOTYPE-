@@ -34,9 +34,9 @@ export function Step1Profile({ onNext }: Step1ProfileProps) {
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
       <div className="mb-8">
         <p className="text-[11px] font-bold tracking-wider text-text-secondary uppercase mb-3">Step 1 · Entrepreneur Profile</p>
-        <h2 className="text-3xl md:text-4xl font-serif text-text-primary mb-3">Begin with your starting point.</h2>
+        <h2 className="text-3xl md:text-4xl font-serif text-text-primary mb-3">Entrepreneur Profile</h2>
         <p className="text-text-secondary text-base leading-relaxed max-w-2xl">
-          A good dairy plan is shaped by the person, place and resources behind it. Tell us about your context in plain terms.
+          Your context and available resources.
         </p>
       </div>
 
@@ -46,11 +46,11 @@ export function Step1Profile({ onNext }: Step1ProfileProps) {
         <div className="p-6 md:p-8 border-b border-border-subtle">
           <div className="mb-6">
             <h3 className="text-lg font-serif text-text-primary mb-1">01 · Place</h3>
-            <p className="text-sm text-text-secondary">Where will the business operate? Location helps us understand the practical conditions around your proposed unit.</p>
+            <p className="text-sm text-text-secondary">Where will the business operate? Location determines local evidence.</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             <FormField control={form.control} name="state" render={({ field }) => (
-              <FormItem className="md:col-span-2">
+              <FormItem>
                 <FormLabel className="text-sm font-semibold text-text-primary">State *</FormLabel>
                 <FormControl><Input className="h-11 bg-white border-border-subtle focus-visible:ring-brand-700" placeholder="e.g. Maharashtra" {...field} /></FormControl>
                 <FormMessage />
@@ -78,7 +78,7 @@ export function Step1Profile({ onNext }: Step1ProfileProps) {
         <div className="p-6 md:p-8 border-b border-border-subtle bg-surface-subtle/30">
           <div className="mb-6">
             <h3 className="text-lg font-serif text-text-primary mb-1">02 · Experience</h3>
-            <p className="text-sm text-text-secondary">Tell us about your working context. There is no right answer. This helps us keep later questions relevant.</p>
+            <p className="text-sm text-text-secondary">Your background and experience.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <FormField control={form.control} name="name" render={({ field }) => (
@@ -126,7 +126,7 @@ export function Step1Profile({ onNext }: Step1ProfileProps) {
         <div className="p-6 md:p-8">
           <div className="mb-6">
             <h3 className="text-lg font-serif text-text-primary mb-1">03 · Resources</h3>
-            <p className="text-sm text-text-secondary">How are you thinking about the investment? We are mapping your starting position before calculating financing.</p>
+            <p className="text-sm text-text-secondary">Current financial position and resources.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <FormField control={form.control} name="marginCapital" render={({ field }) => (

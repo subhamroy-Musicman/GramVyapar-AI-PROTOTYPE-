@@ -338,18 +338,18 @@ export function AIAdvisory({ data, assessment, stress, decision, evidence }: AIA
           )}
 
           <div>
-            <h4 className="text-sm font-bold text-text-primary uppercase tracking-wider mb-2">Summary</h4>
+            <h4 className="text-sm font-bold text-text-primary mb-2">Summary</h4>
             <p className="text-text-secondary leading-relaxed">{advisory?.summary}</p>
           </div>
 
           <div>
-            <h4 className="text-sm font-bold text-text-primary uppercase tracking-wider mb-2">Why This Decision</h4>
+            <h4 className="text-sm font-bold text-text-primary mb-2">Why This Decision</h4>
             <p className="text-text-secondary leading-relaxed">{advisory?.whyThisDecision}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <h4 className="text-sm font-bold text-text-primary uppercase tracking-wider mb-3">Biggest Risks</h4>
+              <h4 className="text-sm font-bold text-text-primary mb-3">Biggest Risks</h4>
               <ul className="space-y-2">
                 {advisory?.biggestRisks.map((risk, i) => (
                   <li key={i} className="flex items-start gap-2 text-text-secondary leading-relaxed">
@@ -361,7 +361,7 @@ export function AIAdvisory({ data, assessment, stress, decision, evidence }: AIA
             </div>
             
             <div>
-              <h4 className="text-sm font-bold text-text-primary uppercase tracking-wider mb-3">Recommended Actions</h4>
+              <h4 className="text-sm font-bold text-text-primary mb-3">Recommended Actions</h4>
               <ul className="space-y-2">
                 {advisory?.recommendedActions.map((action, i) => (
                   <li key={i} className="flex items-start gap-2 text-text-secondary leading-relaxed">
@@ -374,17 +374,17 @@ export function AIAdvisory({ data, assessment, stress, decision, evidence }: AIA
           </div>
 
           <div>
-            <h4 className="text-sm font-bold text-text-primary uppercase tracking-wider mb-2">Stress-Test Interpretation</h4>
+            <h4 className="text-sm font-bold text-text-primary mb-2">Stress-Test Interpretation</h4>
             <p className="text-text-secondary leading-relaxed text-sm">{advisory?.stressTestInterpretation}</p>
           </div>
 
           <div>
-            <h4 className="text-sm font-bold text-text-primary uppercase tracking-wider mb-2">Local Evidence Context</h4>
+            <h4 className="text-sm font-bold text-text-primary mb-2">Local Evidence Context</h4>
             <p className="text-text-secondary leading-relaxed text-sm">{advisory?.localEvidenceContext}</p>
           </div>
 
           <div className="bg-surface-subtle border border-border-subtle rounded-lg p-5">
-            <h4 className="text-sm font-bold text-text-primary uppercase tracking-wider mb-3">Verify Before Borrowing</h4>
+            <h4 className="text-sm font-bold text-text-primary mb-3">Verify Before Borrowing</h4>
             <ul className="space-y-2">
               {advisory?.verifyBeforeBorrowing.map((item, i) => (
                 <li key={i} className="flex items-start gap-2 text-text-secondary leading-relaxed">

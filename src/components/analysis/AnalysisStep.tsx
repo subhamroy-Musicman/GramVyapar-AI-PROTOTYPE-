@@ -22,10 +22,10 @@ export function AnalysisStep({ assessment, decision, onNext, onBack }: AnalysisS
           Step 3 · Financial & Risk Analysis
         </p>
         <h2 className="text-3xl md:text-4xl font-serif text-text-primary mb-3">
-          We are testing the plan, not just the loan.
+          Financial & Risk Analysis
         </h2>
         <p className="text-text-secondary text-base leading-relaxed max-w-2xl">
-          GramVyapar evaluates business economics, financing pressure and downside resilience before preparing your assessment brief.
+          Evaluating business economics, financing pressure, and downside resilience.
         </p>
       </div>
 

@@ -340,7 +340,7 @@ export function AssessmentBrief({ data, assessment, stress, decision, onBack, on
         <button 
           type="button" 
           onClick={onReset}
-          className="h-12 px-6 bg-brand-main text-white font-semibold rounded-lg hover:bg-brand-dark transition-colors flex items-center shadow-sm"
+          className="h-12 px-6 bg-transparent border border-border-strong text-text-primary font-semibold rounded-lg hover:bg-surface-subtle transition-colors flex items-center shadow-sm"
         >
           Start New Assessment
         </button>

@@ -43,9 +43,9 @@ export function Step2DairyPlan({ onNext, onBack }: Step2DairyPlanProps) {
     <div className="animate-in fade-in slide-in-from-right-4 duration-300">
       <div className="mb-8">
         <p className="text-[11px] font-bold tracking-wider text-text-secondary uppercase mb-3">Step 2 · Dairy Plan</p>
-        <h2 className="text-3xl md:text-4xl font-serif text-text-primary mb-3">Shape the dairy unit you want to build.</h2>
+        <h2 className="text-3xl md:text-4xl font-serif text-text-primary mb-3">Dairy Plan</h2>
         <p className="text-text-secondary text-base leading-relaxed max-w-2xl">
-          Tell us about the herd, production assumptions and costs behind your proposed dairy unit. You can refine these values before the final assessment.
+          Proposed unit economics and operating assumptions.
         </p>
       </div>
 
@@ -55,7 +55,7 @@ export function Step2DairyPlan({ onNext, onBack }: Step2DairyPlanProps) {
         <div className="p-6 md:p-8 border-b border-border-subtle">
           <div className="mb-6">
             <h3 className="text-lg font-serif text-text-primary mb-1">01 · Herd</h3>
-            <p className="text-sm text-text-secondary">What kind of dairy unit are you planning? Start with the number and type of animals you expect to operate with.</p>
+            <p className="text-sm text-text-secondary">Size and type of herd.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <FormField control={form.control} name="animalCount" render={({ field }) => (
@@ -144,7 +144,7 @@ export function Step2DairyPlan({ onNext, onBack }: Step2DairyPlanProps) {
           <div className="mb-6 flex justify-between items-start gap-4">
             <div>
               <h3 className="text-lg font-serif text-text-primary mb-1">03 · Operating Costs</h3>
-              <p className="text-sm text-text-secondary">What will it cost to run the unit? Capture the recurring costs that directly affect business viability.</p>
+              <p className="text-sm text-text-secondary">Recurring operational costs.</p>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -231,7 +231,7 @@ export function Step2DairyPlan({ onNext, onBack }: Step2DairyPlanProps) {
         <div className="p-6 md:p-8 bg-surface-subtle/30">
           <div className="mb-6">
             <h3 className="text-lg font-serif text-text-primary mb-1">04 · Setup & Working Capital</h3>
-            <p className="text-sm text-text-secondary">What does it take to set up the unit? These one-time and initial costs determine the project size and financing requirement.</p>
+            <p className="text-sm text-text-secondary">Setup and initial capital requirements.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <FormField control={form.control} name="shedCost" render={({ field }) => (
