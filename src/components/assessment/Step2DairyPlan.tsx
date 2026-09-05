@@ -14,6 +14,22 @@ interface Step2DairyPlanProps {
   onBack: () => void;
 }
 
+const CurrencyInput = ({ field, placeholder }: { field: any, placeholder?: string }) => (
+  <div className="relative">
+    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary font-medium">₹</span>
+    <Input 
+      type="number" 
+      className="h-11 bg-white border-border-subtle focus-visible:ring-brand-700 tabular-nums pl-7" 
+      placeholder={placeholder} 
+      {...field}
+      onChange={(e) => {
+        const val = e.target.value;
+        field.onChange(val === "" ? "" : Number(val));
+      }}
+    />
+  </div>
+);
+
 export function Step2DairyPlan({ onNext, onBack }: Step2DairyPlanProps) {
   const form = useFormContext<AssessmentData>();
 
@@ -31,13 +47,6 @@ export function Step2DairyPlan({ onNext, onBack }: Step2DairyPlanProps) {
       onNext();
     }
   };
-
-  const CurrencyInput = ({ field, placeholder }: { field: any, placeholder?: string }) => (
-    <div className="relative">
-      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary font-medium">₹</span>
-      <Input type="number" className="h-11 bg-white border-border-subtle focus-visible:ring-brand-700 tabular-nums pl-7" placeholder={placeholder} {...field} />
-    </div>
-  );
 
   return (
     <div className="animate-in fade-in slide-in-from-right-4 duration-300">

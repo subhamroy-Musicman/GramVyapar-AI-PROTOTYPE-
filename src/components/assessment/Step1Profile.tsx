@@ -138,7 +138,10 @@ export function Step1Profile({ onNext }: Step1ProfileProps) {
                       type="number" 
                       className="flex-1 h-11 bg-white border-border-subtle focus-visible:ring-brand-700 tabular-nums" 
                       {...field}
-                      onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        field.onChange(val === "" ? "" : Number(val));
+                      }}
                     />
                   </FormControl>
                   <VoiceInputButton 

@@ -1,5 +1,5 @@
 import { CheckCircle2, ArrowRight, ArrowLeft } from "lucide-react";
-import { formatCurrency } from "@/lib/utils/formatters";
+import { formatCurrency, formatPreviewCurrency } from "@/lib/utils/formatters";
 import { DecisionResult } from "@/domain/decision/types";
 
 import { FinancialAssessment } from "@/domain/finance/types";
@@ -52,30 +52,30 @@ export function AnalysisStep({ assessment, decision, onNext, onBack }: AnalysisS
         {/* Key Numbers Preview */}
         <div className="bg-[#1F4A45] p-6 rounded-xl border border-[#123524] text-white shadow-sm flex flex-col justify-center">
           <h3 className="text-sm font-semibold mb-5 text-[#DDE8E1]">Preview</h3>
-          <div className="grid grid-cols-2 gap-y-5 gap-x-4">
-            <div>
-              <p className="text-[10px] text-[#DDE8E1]/70 uppercase tracking-wider mb-1">Project Cost</p>
-              <p className="text-lg font-medium">{formatCurrency(assessment.project.projectCost)}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-5 gap-x-4">
+            <div className="min-w-0">
+              <p className="text-[10px] text-[#DDE8E1]/70 uppercase tracking-wider mb-1 truncate">Project Cost</p>
+              <p className="text-lg font-medium break-words [overflow-wrap:anywhere]">{formatPreviewCurrency(assessment.project.projectCost)}</p>
             </div>
-            <div>
-              <p className="text-[10px] text-[#DDE8E1]/70 uppercase tracking-wider mb-1">Funding Gap</p>
-              <p className="text-lg font-medium">{formatCurrency(metrics.fundingGap)}</p>
+            <div className="min-w-0">
+              <p className="text-[10px] text-[#DDE8E1]/70 uppercase tracking-wider mb-1 truncate">Funding Gap</p>
+              <p className="text-lg font-medium break-words [overflow-wrap:anywhere]">{formatPreviewCurrency(metrics.fundingGap)}</p>
             </div>
-            <div>
-              <p className="text-[10px] text-[#DDE8E1]/70 uppercase tracking-wider mb-1">Operating Surplus</p>
-              <p className="text-lg font-medium">{formatCurrency(metrics.baseOperatingSurplus)}</p>
+            <div className="min-w-0">
+              <p className="text-[10px] text-[#DDE8E1]/70 uppercase tracking-wider mb-1 truncate">Operating Surplus</p>
+              <p className="text-lg font-medium break-words [overflow-wrap:anywhere]">{formatPreviewCurrency(metrics.baseOperatingSurplus)}</p>
             </div>
-            <div>
-              <p className="text-[10px] text-[#DDE8E1]/70 uppercase tracking-wider mb-1">Post-Repay Cash</p>
-              <p className="text-lg font-medium">{formatCurrency(metrics.basePostRepaymentCash)}</p>
+            <div className="min-w-0">
+              <p className="text-[10px] text-[#DDE8E1]/70 uppercase tracking-wider mb-1 truncate">Post-Repay Cash</p>
+              <p className="text-lg font-medium break-words [overflow-wrap:anywhere]">{formatPreviewCurrency(metrics.basePostRepaymentCash)}</p>
             </div>
-            <div>
-              <p className="text-[10px] text-[#DDE8E1]/70 uppercase tracking-wider mb-1">Stress Post-Repay Cash</p>
-              <p className="text-lg font-medium">{formatCurrency(metrics.stressPostRepaymentCash)}</p>
+            <div className="min-w-0">
+              <p className="text-[10px] text-[#DDE8E1]/70 uppercase tracking-wider mb-1 truncate">Stress Post-Repay Cash</p>
+              <p className="text-lg font-medium break-words [overflow-wrap:anywhere]">{formatPreviewCurrency(metrics.stressPostRepaymentCash)}</p>
             </div>
-            <div>
-              <p className="text-[10px] text-[#DDE8E1]/70 uppercase tracking-wider mb-1">Decision Status</p>
-              <p className={`text-sm font-bold mt-1 inline-block px-2 py-0.5 rounded ${
+            <div className="min-w-0">
+              <p className="text-[10px] text-[#DDE8E1]/70 uppercase tracking-wider mb-1 truncate">Decision Status</p>
+              <p className={`text-sm font-bold mt-1 inline-block px-2 py-0.5 rounded break-words [overflow-wrap:anywhere] ${
                 decision.status === 'PROCEED' ? 'bg-[#DDE8E1] text-[#1F4A45]' : 
                 decision.status === 'MODIFY' ? 'bg-amber-500/20 text-amber-200' : 
                 'bg-red-500/20 text-red-200'

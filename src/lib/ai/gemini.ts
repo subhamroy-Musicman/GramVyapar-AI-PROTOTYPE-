@@ -44,12 +44,19 @@ export async function callGeminiStructured(systemInstruction: string, inputData:
     }
 
     try {
-      return JSON.parse(response.text);
+      let text = response.text.trim();
+      if (text.startsWith("```json")) {
+        text = text.replace(/^```json\s*/, "").replace(/\s*```$/, "").trim();
+      } else if (text.startsWith("```")) {
+        text = text.replace(/^```\s*/, "").replace(/\s*```$/, "").trim();
+      }
+      return JSON.parse(text);
     } catch (parseErr) {
       throw new AiProviderError("AI_INVALID_RESPONSE", "Response was not valid JSON.");
     }
 
   } catch (error: any) {
+    console.error("RAW GEMINI ERROR:", error);
     if (error instanceof AiProviderError) {
       throw error;
     }

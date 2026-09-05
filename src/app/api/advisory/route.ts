@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { generateAdvisory } from '@/lib/advisory/generate-advisory';
 import { AiProviderError } from '@/lib/ai/gemini';
 
+export const maxDuration = 60;
+
 const advisoryRequestSchema = z.object({
   language: z.enum(["en", "hi", "bn", "mr", "ta"]),
   entrepreneur: z.any(),
