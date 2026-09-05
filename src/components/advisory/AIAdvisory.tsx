@@ -103,14 +103,20 @@ export function AIAdvisory({ data, assessment, stress, decision, evidence }: AIA
   // Canonical stable request identity string (deterministic fingerprint)
   const requestFingerprint = currentPayload ? JSON.stringify(currentPayload) : null;
 
-  // Track the generated advisory and the fingerprint it corresponds to
-  const [advisoryCache, setAdvisoryCache] = useState<{ fingerprint: string | null; data: AdvisoryResult | null }>({
-    fingerprint: null,
-    data: null
-  });
+  // Track generated advisories by fingerprint to avoid re-fetching when switching languages back and forth
+  const [advisoryCache, setAdvisoryCache] = useState<Record<string, AdvisoryResult>>({});
 
-  const fetchAdvisory = async () => {
+  const [apiError, setApiError] = useState<{ category: string, message: string } | null>(null);
+
+  const fetchAdvisory = async (forceRetry = false) => {
     if (!currentPayload || !requestFingerprint) return;
+
+    if (loading) return; // Prevent duplicate requests (e.g., from double clicks or React Strict Mode)
+
+    const cacheKey = `${requestFingerprint}_${language}`;
+    if (!forceRetry && advisoryCache[cacheKey]) {
+      return; // Already cached
+    }
 
     if (requestAbortController.current) {
       requestAbortController.current.abort();
@@ -121,6 +127,7 @@ export function AIAdvisory({ data, assessment, stress, decision, evidence }: AIA
     
     setLoading(true);
     setError(false);
+    setApiError(null);
 
     try {
       const res = await fetch("/api/advisory", {
@@ -130,21 +137,38 @@ export function AIAdvisory({ data, assessment, stress, decision, evidence }: AIA
         signal: abortController.signal
       });
 
-      if (!res.ok) throw new Error("Failed to fetch advisory");
+      if (!res.ok) {
+        let errData = null;
+        try {
+          errData = await res.json();
+        } catch (e) {
+          // ignore
+        }
+        
+        const category = errData?.category || 'SERVER_ERROR';
+        const message = errData?.message || 'Failed to fetch advisory';
+        
+        throw { isApiError: true, category, message };
+      }
       
       const resultData = await res.json();
       
       if (resultData.language === language) {
-        setAdvisoryCache({
-          fingerprint: requestFingerprint,
-          data: resultData
-        });
+        setAdvisoryCache(prev => ({
+          ...prev,
+          [cacheKey]: resultData
+        }));
       }
       
     } catch (err: any) {
       if (err.name === 'AbortError') return;
       console.error("Advisory error:", err);
       setError(true);
+      if (err.isApiError) {
+        setApiError({ category: err.category, message: err.message });
+      } else {
+        setApiError({ category: 'NETWORK_ERROR', message: 'Failed to connect to the advisory service.' });
+      }
     } finally {
       if (requestAbortController.current === abortController) {
         setLoading(false);
@@ -155,7 +179,7 @@ export function AIAdvisory({ data, assessment, stress, decision, evidence }: AIA
   useEffect(() => {
     fetchAdvisory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requestFingerprint]);
+  }, [requestFingerprint, language]);
 
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setLanguage(e.target.value as SupportedLanguage);
@@ -175,9 +199,10 @@ export function AIAdvisory({ data, assessment, stress, decision, evidence }: AIA
   }, []);
 
   // Determine if we should show the advisory or hide it (because it's stale)
-  const isAdvisoryStale = requestFingerprint !== advisoryCache.fingerprint;
-  const showAdvisory = advisoryCache.data && !isAdvisoryStale;
-  const advisory = advisoryCache.data;
+  const currentCacheKey = requestFingerprint ? `${requestFingerprint}_${language}` : null;
+  const advisory = currentCacheKey ? advisoryCache[currentCacheKey] : null;
+  const isAdvisoryStale = !advisory;
+  const showAdvisory = !!advisory;
 
   // Stop TTS immediately on unmount or stale state changes (language/assessment/advisory change)
   useEffect(() => {
@@ -340,17 +365,21 @@ export function AIAdvisory({ data, assessment, stress, decision, evidence }: AIA
       ) : error ? (
         <div className="flex flex-col items-center justify-center py-10 px-4">
           <AlertCircle className="w-8 h-8 text-red-500 mb-3" />
-          <h3 className="text-lg font-medium text-red-900 mb-1">Failed to load AI advisory</h3>
-          <p className="text-sm text-red-700/80 mb-6 max-w-md">
-            Your financial assessment, stress test, viability decision, and local evidence remain available above.
+          <h3 className="text-lg font-medium text-red-900 mb-1">
+            {apiError?.category === 'RATE_LIMIT' || apiError?.category === 'PROVIDER_UNAVAILABLE' || apiError?.category === 'AI_TIMEOUT' ? 
+              'Advisory temporarily unavailable' : 'Failed to load AI advisory'}
+          </h3>
+          <p className="text-sm text-red-700/80 mb-6 max-w-md text-center">
+            {apiError?.message || 'Your financial assessment, stress test, viability decision, and local evidence remain available above.'}
           </p>
           <button 
             type="button"
-            onClick={() => fetchAdvisory()}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-red-200 rounded-md text-red-700 hover:bg-red-50 transition-colors text-sm font-medium"
+            onClick={() => fetchAdvisory(true)}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-red-200 rounded-md text-red-700 hover:bg-red-50 transition-colors text-sm font-medium disabled:opacity-50"
           >
-            <RefreshCw className="w-4 h-4" />
-            Retry advisory
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            {loading ? 'Retrying...' : 'Retry advisory'}
           </button>
         </div>
       ) : showAdvisory ? (
