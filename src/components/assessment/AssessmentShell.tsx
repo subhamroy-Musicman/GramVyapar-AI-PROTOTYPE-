@@ -126,13 +126,13 @@ export function AssessmentShell({ onComplete }: AssessmentShellProps) {
   };
 
   return (
-    <div className="flex w-full min-h-[calc(100vh-64px)] bg-[#F7F4EE]">
+    <div className="flex w-full min-w-0 min-h-[calc(100vh-64px)] bg-[#F7F4EE]">
       {/* Sidebar for Desktop */}
       <AssessmentSidebar currentStep={step} />
 
       {/* Main Content Area */}
-      <div className="flex-1 md:ml-[260px] flex justify-center">
-        <div className="w-full max-w-[1200px] px-4 md:px-8 py-8 md:py-12">
+      <div className="flex-1 min-w-0 md:ml-[260px] flex justify-center">
+        <div className="w-full min-w-0 max-w-[1200px] px-4 md:px-8 py-8 md:py-12">
           
           {/* Mobile Step Indicator */}
           <div className="md:hidden mb-6 flex items-center gap-2 text-sm font-medium text-text-secondary">

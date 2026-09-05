@@ -11,7 +11,7 @@ import Image from "next/image";
 
 function MainApp() {
   return (
-    <div className="min-h-screen bg-[#F7F4EE] text-text-primary font-sans flex flex-col">
+    <div className="w-full min-w-0 min-h-screen bg-[#F7F4EE] text-text-primary font-sans flex flex-col">
       {/* HEADER */}
       <header className="bg-white border-b border-border-subtle h-[72px] shrink-0 sticky top-0 z-50">
         <div className="w-full px-4 md:px-6 h-full flex items-center justify-between">
@@ -47,7 +47,7 @@ function MainApp() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col w-full">
+      <main className="flex-1 flex flex-col w-full min-w-0">
         <AssessmentShell onComplete={() => window.location.reload()} />
       </main>
     </div>
