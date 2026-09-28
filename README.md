@@ -56,18 +56,20 @@ The application calculates:
 - repayment calculation
 - post-repayment cash flow
 - existing-debt consideration
+- **pricing intelligence** (operating break-even, debt-service break-even, stress break-even, and price positioning)
 
 **Financial calculations are deterministic TypeScript logic. The LLM does NOT calculate financial viability.**
 
 ### 2. Financing Routing
-The system determines indicative financing routes (prototype financing categories) based on the calculated funding gap:
-- ₹0 funding gap → `SELF_FUNDED`
-- Up to ₹1.5 lakh → `MICRO_LOAN`
-- Above ₹1.5 lakh and up to ₹5 lakh → `SMALL_ENTERPRISE_FINANCE`
-- Above ₹5 lakh and up to ₹10 lakh → `TERM_LOAN`
-- Above ₹10 lakh → `OUTSIDE_PROTOTYPE_RANGE`
+The system matches the funding gap against verified government schemes:
+- **PM MUDRA (Shishu, Kishore, Tarun)**
+- **PMEGP** (with demographic-based margin modeling)
+- **Stand-Up India**
+- **PMFME**
+- **KCC (Animal Husbandry)**
+- **Self Funded**
 
-*(Note: These are prototype financing categories, not official scheme eligibility.)*
+*(Note: Scheme routing considers demographic eligibility and project cost logic from official guidelines.)*
 
 ### 3. Repayment Assumptions
 The engine uses configured prototype assumptions:
@@ -94,6 +96,13 @@ The decision is based on operating surplus, post-repayment cash, existing debt i
 ### 6. Hyper-Local Evidence
 Location inputs are verified via server-side geocoding against 5km and 10km radii for dairy-related mapped signals, sales channels, and support infrastructure.
 
+The evidence engine generates:
+- **Competitor Mapping**
+- **SWOT Analysis** (grounded in data)
+- **Threat Analysis** (severity scaled by data)
+- **Opportunity Analysis**
+- **Market Reach Reporting**
+
 Sources currently implemented:
 - OpenStreetMap / Nominatim
 - OpenStreetMap / Overpass
@@ -117,6 +126,9 @@ Gemini is used for:
 - actionable recommendations
 - multilingual output
 
+**Advisory Reliability:**
+The advisory service features automatic retries on API timeout and output schema validation. Responses are strictly structured and kept concise to reduce token latency.
+
 Gemini is NOT the authority for financial arithmetic, repayment calculation, financing routing, stress calculations, or the deterministic decision status.
 
 ### 8. Multilingual Support
@@ -131,7 +143,7 @@ Dynamic advisory content is generated in the selected language.
 
 ### 9. Voice Architecture
 **Speech-to-Text (STT):**
-Browser Web Speech API / browser speech-recognition layer for supported voice input. Critical financial values require explicit confirmation before form mutation. Voice recognition never silently changes a critical financial value.
+Browser Web Speech API / browser speech-recognition layer for supported voice input. It uses a robust, single-settlement lifecycle to prevent UI lockups on browser STT timeouts, strictly ignores unsafe interim transcripts, and handles floating-point parsing (e.g. "1.5 lakh"). Critical financial values require explicit confirmation before form mutation. Voice recognition never silently changes a critical financial value.
 
 **Text-to-Speech (TTS):**
 - **Primary:** Gemini server-side TTS
@@ -260,7 +272,7 @@ npm run test
 npm run typecheck
 npm run build
 ```
-*(Currently 74 tests passing on the release candidate.)*
+*(Currently 140 tests passing on the release candidate.)*
 
 ---
 
