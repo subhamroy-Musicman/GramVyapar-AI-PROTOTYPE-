@@ -79,6 +79,11 @@ OPPORTUNITY ANALYSIS:
 - Preserve the distinction between what is observed, what is a hypothesis, and what is not verified.
 - Do not invent new validation actions.
 
+SWOT ANALYSIS:
+- Explain only the supplied SWOT items. Do not create additional strengths, weaknesses, opportunities or threats.
+- Respect the categorical confidence of each item.
+- Do not remove supplied limitations.
+
 LOCAL VERIFICATION RECOMMENDATIONS:
 Encourage practical verification before borrowing (e.g., verifying milk price, feed price, animal cost, veterinary access, financing terms).
 

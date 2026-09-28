@@ -8,6 +8,7 @@ import { AssessmentData } from "../../components/assessment/schema";
 import { calculateMarketReach } from "../../domain/evidence/market-reach";
 
 import { calculateOpportunityAnalysis } from "../../domain/evidence/opportunity-analysis";
+import { calculateSwotAnalysis } from "../../domain/evidence/swot-analysis";
 
 export function buildAdvisoryInput(
   data: AssessmentData,
@@ -22,6 +23,7 @@ export function buildAdvisoryInput(
   const r10 = evidence.radius10km;
   const marketReach = calculateMarketReach(evidence);
   const opportunityAnalysis = calculateOpportunityAnalysis(evidence, marketReach);
+  const swotAnalysis = calculateSwotAnalysis(financial, stress, evidence, marketReach, opportunityAnalysis);
   
   return {
     language,
@@ -84,7 +86,8 @@ export function buildAdvisoryInput(
       salesChannelSignal: evidence.salesChannelSignal,
       limitations: evidence.limitations,
       marketReach,
-      opportunityAnalysis
+      opportunityAnalysis,
+      swotAnalysis
     },
   };
 }

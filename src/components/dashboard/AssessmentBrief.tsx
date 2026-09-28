@@ -7,8 +7,11 @@ import { DECISION_REASON_COPY } from "@/lib/presentation/decision-copy";
 import { AssessmentData } from "../assessment/schema";
 import { HyperLocalEvidence } from "../assessment/HyperLocalEvidence";
 import { AIAdvisory } from "../advisory/AIAdvisory";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { EvidenceResult } from "@/domain/evidence/types";
+import { calculateMarketReach } from "@/domain/evidence/market-reach";
+import { calculateOpportunityAnalysis } from "@/domain/evidence/opportunity-analysis";
+import { calculateSwotAnalysis } from "@/domain/evidence/swot-analysis";
 
 interface AssessmentBriefProps {
   data: AssessmentData; // Form data
@@ -21,6 +24,15 @@ interface AssessmentBriefProps {
 
 export function AssessmentBrief({ data, assessment, stress, decision, onBack, onReset }: AssessmentBriefProps) {
   const [terminalEvidence, setTerminalEvidence] = useState<EvidenceResult | 'UNAVAILABLE' | null>(null);
+
+  const swotAnalysis = useMemo(() => {
+    if (!terminalEvidence || terminalEvidence === 'UNAVAILABLE' || (terminalEvidence as any).geocodeStatus !== 'SUCCESS') {
+      return null;
+    }
+    const reach = calculateMarketReach(terminalEvidence);
+    const opps = calculateOpportunityAnalysis(terminalEvidence, reach);
+    return calculateSwotAnalysis(assessment, stress, terminalEvidence, reach, opps);
+  }, [terminalEvidence, assessment, stress]);
 
   const isProceed = decision.status === 'PROCEED';
   const isModify = decision.status === 'MODIFY';
@@ -302,6 +314,143 @@ export function AssessmentBrief({ data, assessment, stress, decision, onBack, on
           state={data.state} 
           onTerminalState={setTerminalEvidence}
         />
+
+        {/* SECTION G2: SWOT ANALYSIS */}
+        {swotAnalysis && (
+          <section className="bg-white p-6 md:p-8 rounded-xl shadow-sm border border-border-subtle min-w-0">
+            <div className="mb-6">
+              <h3 className="text-lg font-serif text-text-primary mb-2">SWOT Analysis</h3>
+              <p className="text-sm text-text-secondary">{swotAnalysis.summary}</p>
+            </div>
+
+            {swotAnalysis.strengths.length === 0 && swotAnalysis.weaknesses.length === 0 && swotAnalysis.opportunities.length === 0 && swotAnalysis.threats.length === 0 ? (
+              <div className="bg-surface-subtle p-6 rounded-xl border border-border-subtle text-center">
+                <p className="text-sm text-text-secondary font-medium">No defensible items identified from current evidence.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* STRENGTHS */}
+                <div className="space-y-4 min-w-0">
+                  <h4 className="text-xs font-bold text-emerald-700 uppercase tracking-wider border-b border-border-subtle pb-2">Strengths</h4>
+                  {swotAnalysis.strengths.length === 0 ? (
+                    <p className="text-xs text-text-secondary italic">No defensible item identified from current evidence.</p>
+                  ) : (
+                    swotAnalysis.strengths.map(item => (
+                      <div key={item.id} className="bg-emerald-50/50 p-4 rounded-lg border border-emerald-100 min-w-0">
+                        <p className="text-sm font-medium text-text-primary mb-2">{item.statement}</p>
+                        <p className="text-xs text-text-secondary mb-3">{item.sourceDetail}</p>
+                        <div className="flex gap-2 items-center flex-wrap">
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 bg-white border border-border-subtle rounded text-slate-600 tracking-wider">
+                            {item.sourceType.replace(/_/g, ' ')}
+                          </span>
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wider ${
+                            item.confidence === 'HIGH' ? 'bg-emerald-100 text-emerald-800' :
+                            item.confidence === 'MEDIUM' ? 'bg-blue-100 text-blue-800' :
+                            'bg-amber-100 text-amber-800'
+                          }`}>
+                            {item.confidence} CONFIDENCE
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* WEAKNESSES */}
+                <div className="space-y-4 min-w-0">
+                  <h4 className="text-xs font-bold text-amber-700 uppercase tracking-wider border-b border-border-subtle pb-2">Weaknesses</h4>
+                  {swotAnalysis.weaknesses.length === 0 ? (
+                    <p className="text-xs text-text-secondary italic">No defensible item identified from current evidence.</p>
+                  ) : (
+                    swotAnalysis.weaknesses.map(item => (
+                      <div key={item.id} className="bg-amber-50/50 p-4 rounded-lg border border-amber-100 min-w-0">
+                        <p className="text-sm font-medium text-text-primary mb-2">{item.statement}</p>
+                        <p className="text-xs text-text-secondary mb-3">{item.sourceDetail}</p>
+                        <div className="flex gap-2 items-center flex-wrap">
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 bg-white border border-border-subtle rounded text-slate-600 tracking-wider">
+                            {item.sourceType.replace(/_/g, ' ')}
+                          </span>
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wider ${
+                            item.confidence === 'HIGH' ? 'bg-emerald-100 text-emerald-800' :
+                            item.confidence === 'MEDIUM' ? 'bg-blue-100 text-blue-800' :
+                            'bg-amber-100 text-amber-800'
+                          }`}>
+                            {item.confidence} CONFIDENCE
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* OPPORTUNITIES */}
+                <div className="space-y-4 min-w-0">
+                  <h4 className="text-xs font-bold text-blue-700 uppercase tracking-wider border-b border-border-subtle pb-2">Opportunities</h4>
+                  {swotAnalysis.opportunities.length === 0 ? (
+                    <p className="text-xs text-text-secondary italic">No defensible item identified from current evidence.</p>
+                  ) : (
+                    swotAnalysis.opportunities.map(item => (
+                      <div key={item.id} className="bg-blue-50/50 p-4 rounded-lg border border-blue-100 min-w-0">
+                        <p className="text-sm font-medium text-text-primary mb-2">{item.statement}</p>
+                        <p className="text-xs text-text-secondary mb-3">{item.sourceDetail}</p>
+                        <div className="flex gap-2 items-center flex-wrap">
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 bg-white border border-border-subtle rounded text-slate-600 tracking-wider">
+                            {item.sourceType.replace(/_/g, ' ')}
+                          </span>
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wider ${
+                            item.confidence === 'HIGH' ? 'bg-emerald-100 text-emerald-800' :
+                            item.confidence === 'MEDIUM' ? 'bg-blue-100 text-blue-800' :
+                            'bg-amber-100 text-amber-800'
+                          }`}>
+                            {item.confidence} CONFIDENCE
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* THREATS */}
+                <div className="space-y-4 min-w-0">
+                  <h4 className="text-xs font-bold text-red-700 uppercase tracking-wider border-b border-border-subtle pb-2">Threats</h4>
+                  {swotAnalysis.threats.length === 0 ? (
+                    <p className="text-xs text-text-secondary italic">No defensible item identified from current evidence.</p>
+                  ) : (
+                    swotAnalysis.threats.map(item => (
+                      <div key={item.id} className="bg-red-50/50 p-4 rounded-lg border border-red-100 min-w-0">
+                        <p className="text-sm font-medium text-text-primary mb-2">{item.statement}</p>
+                        <p className="text-xs text-text-secondary mb-3">{item.sourceDetail}</p>
+                        <div className="flex gap-2 items-center flex-wrap">
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 bg-white border border-border-subtle rounded text-slate-600 tracking-wider">
+                            {item.sourceType.replace(/_/g, ' ')}
+                          </span>
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wider ${
+                            item.confidence === 'HIGH' ? 'bg-emerald-100 text-emerald-800' :
+                            item.confidence === 'MEDIUM' ? 'bg-blue-100 text-blue-800' :
+                            'bg-amber-100 text-amber-800'
+                          }`}>
+                            {item.confidence} CONFIDENCE
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
+            {swotAnalysis.limitations.length > 0 && (
+              <div className="mt-8 bg-surface-subtle p-4 rounded-lg border border-border-subtle">
+                <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-2">Limitations</span>
+                <ul className="text-xs text-text-secondary leading-relaxed list-disc pl-4 space-y-1">
+                  {swotAnalysis.limitations.map((lim, idx) => (
+                    <li key={idx}>{lim}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </section>
+        )}
 
         {/* SECTION H: AI ADVISORY */}
         <AIAdvisory 

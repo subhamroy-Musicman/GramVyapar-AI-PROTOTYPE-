@@ -69,6 +69,7 @@ export interface AdvisoryInput {
     limitations: string[];
     marketReach?: any;
     opportunityAnalysis?: any;
+    swotAnalysis?: any;
   };
 }
 
