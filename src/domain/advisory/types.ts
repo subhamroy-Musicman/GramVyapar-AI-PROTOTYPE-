@@ -70,6 +70,7 @@ export interface AdvisoryInput {
     marketReach?: any;
     opportunityAnalysis?: any;
     swotAnalysis?: any;
+    threatAnalysis?: any;
   };
 }
 

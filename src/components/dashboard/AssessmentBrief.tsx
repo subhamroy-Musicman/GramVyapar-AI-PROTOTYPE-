@@ -12,6 +12,7 @@ import { EvidenceResult } from "@/domain/evidence/types";
 import { calculateMarketReach } from "@/domain/evidence/market-reach";
 import { calculateOpportunityAnalysis } from "@/domain/evidence/opportunity-analysis";
 import { calculateSwotAnalysis } from "@/domain/evidence/swot-analysis";
+import { calculateThreatAnalysis } from "@/domain/evidence/threat-analysis";
 
 interface AssessmentBriefProps {
   data: AssessmentData; // Form data
@@ -25,9 +26,9 @@ interface AssessmentBriefProps {
 export function AssessmentBrief({ data, assessment, stress, decision, onBack, onReset }: AssessmentBriefProps) {
   const [terminalEvidence, setTerminalEvidence] = useState<EvidenceResult | 'UNAVAILABLE' | null>(null);
 
-  const swotAnalysis = useMemo(() => {
+  const { swotAnalysis, threatAnalysis } = useMemo(() => {
     if (!terminalEvidence) {
-      return null; // wait for fetch to complete or fail
+      return { swotAnalysis: null, threatAnalysis: null }; // wait for fetch to complete or fail
     }
     
     let reach = null;
@@ -38,8 +39,11 @@ export function AssessmentBrief({ data, assessment, stress, decision, onBack, on
       opps = calculateOpportunityAnalysis(terminalEvidence as EvidenceResult, reach);
     }
     
-    return calculateSwotAnalysis(assessment, stress, terminalEvidence, reach, opps);
-  }, [terminalEvidence, assessment, stress]);
+    return {
+      swotAnalysis: calculateSwotAnalysis(assessment, stress, terminalEvidence, reach, opps),
+      threatAnalysis: calculateThreatAnalysis(assessment, stress, decision, terminalEvidence, reach, opps)
+    };
+  }, [terminalEvidence, assessment, stress, decision]);
 
   const isProceed = decision.status === 'PROCEED';
   const isModify = decision.status === 'MODIFY';
@@ -451,6 +455,89 @@ export function AssessmentBrief({ data, assessment, stress, decision, onBack, on
                 <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-2">Limitations</span>
                 <ul className="text-xs text-text-secondary leading-relaxed list-disc pl-4 space-y-1">
                   {swotAnalysis.limitations.map((lim, idx) => (
+                    <li key={idx}>{lim}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* SECTION G3: THREAT IDENTIFICATION */}
+        {threatAnalysis && (
+          <section className="bg-white p-6 md:p-8 rounded-xl shadow-sm border border-border-subtle min-w-0">
+            <div className="mb-6">
+              <h3 className="text-lg font-serif text-text-primary mb-2 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-600" />
+                Key Threats & Mitigation
+              </h3>
+              <p className="text-sm text-text-secondary">{threatAnalysis.summary}</p>
+            </div>
+
+            {threatAnalysis.threats.length === 0 ? (
+              <div className="bg-surface-subtle p-6 rounded-xl border border-border-subtle text-center">
+                <p className="text-sm text-text-secondary font-medium">No deterministically derived threats identified from current parameters.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {threatAnalysis.threats.slice(0, 4).map(threat => (
+                  <div key={threat.id} className={`p-4 md:p-5 rounded-lg border flex flex-col md:flex-row gap-4 md:gap-6 ${
+                    threat.severity === 'HIGH' ? 'bg-red-50/50 border-red-200' :
+                    threat.severity === 'MEDIUM' ? 'bg-amber-50/50 border-amber-200' :
+                    'bg-slate-50 border-slate-200'
+                  }`}>
+                    {/* Left column */}
+                    <div className="md:w-1/3 shrink-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`text-[10px] font-bold px-2 py-1 rounded tracking-wider ${
+                          threat.severity === 'HIGH' ? 'bg-red-100 text-red-800' :
+                          threat.severity === 'MEDIUM' ? 'bg-amber-100 text-amber-800' :
+                          'bg-slate-200 text-slate-800'
+                        }`}>
+                          SEVERITY: {threat.severity}
+                        </span>
+                      </div>
+                      <h4 className="text-sm font-bold text-text-primary mb-1 uppercase tracking-tight">{threat.title}</h4>
+                      <div className="text-[10px] font-bold px-1.5 py-0.5 bg-white border border-border-subtle rounded text-slate-600 tracking-wider inline-block mb-3">
+                        {threat.sourceType.replace(/_/g, ' ')}
+                      </div>
+                    </div>
+                    
+                    {/* Right column */}
+                    <div className="md:w-2/3 space-y-3">
+                      <div>
+                        <span className="text-xs font-bold text-text-secondary uppercase tracking-wider block mb-1">Why it matters</span>
+                        <p className="text-sm text-text-primary">{threat.description}</p>
+                      </div>
+                      
+                      {threat.notVerified.length > 0 && (
+                        <div>
+                          <span className="text-xs font-bold text-text-secondary uppercase tracking-wider block mb-1">Not Verified</span>
+                          <ul className="text-sm text-text-secondary list-disc pl-4 space-y-0.5">
+                            {threat.notVerified.map((nv, idx) => (
+                              <li key={idx}>{nv}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      <div className="bg-white p-3 rounded border border-border-subtle shadow-sm mt-2">
+                        <span className="text-xs font-bold text-brand-700 uppercase tracking-wider block mb-1 flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> What to do
+                        </span>
+                        <p className="text-sm text-text-primary font-medium">{threat.mitigationAction}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {threatAnalysis.limitations.length > 0 && (
+              <div className="mt-8 bg-surface-subtle p-4 rounded-lg border border-border-subtle">
+                <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-2">Limitations</span>
+                <ul className="text-xs text-text-secondary leading-relaxed list-disc pl-4 space-y-1">
+                  {threatAnalysis.limitations.map((lim, idx) => (
                     <li key={idx}>{lim}</li>
                   ))}
                 </ul>

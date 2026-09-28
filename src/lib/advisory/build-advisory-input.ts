@@ -9,6 +9,7 @@ import { calculateMarketReach } from "../../domain/evidence/market-reach";
 
 import { calculateOpportunityAnalysis } from "../../domain/evidence/opportunity-analysis";
 import { calculateSwotAnalysis } from "../../domain/evidence/swot-analysis";
+import { calculateThreatAnalysis } from "../../domain/evidence/threat-analysis";
 
 export function buildAdvisoryInput(
   data: AssessmentData,
@@ -24,6 +25,7 @@ export function buildAdvisoryInput(
   const marketReach = calculateMarketReach(evidence);
   const opportunityAnalysis = calculateOpportunityAnalysis(evidence, marketReach);
   const swotAnalysis = calculateSwotAnalysis(financial, stress, evidence, marketReach, opportunityAnalysis);
+  const threatAnalysis = calculateThreatAnalysis(financial, stress, decision, evidence, marketReach, opportunityAnalysis);
   
   return {
     language,
@@ -87,7 +89,8 @@ export function buildAdvisoryInput(
       limitations: evidence.limitations,
       marketReach,
       opportunityAnalysis,
-      swotAnalysis
+      swotAnalysis,
+      threatAnalysis
     },
   };
 }

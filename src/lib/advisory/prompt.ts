@@ -84,6 +84,11 @@ SWOT ANALYSIS:
 - Respect the categorical confidence of each item.
 - Do not remove supplied limitations.
 
+THREAT ANALYSIS:
+- Explain only the supplied ThreatAnalysisResult. Do not create additional threats or change their severity/confidence.
+- Do not invent seasonality, buyer dependency, or supply-chain bottlenecks if they are not supplied.
+- Do not invent causes or mitigation actions that are not present in the supplied threat items.
+
 LOCAL VERIFICATION RECOMMENDATIONS:
 Encourage practical verification before borrowing (e.g., verifying milk price, feed price, animal cost, veterinary access, financing terms).
 
