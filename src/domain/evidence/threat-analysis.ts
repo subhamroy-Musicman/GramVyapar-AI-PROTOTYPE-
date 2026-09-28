@@ -69,13 +69,20 @@ export function calculateThreatAnalysis(
   const baseCash = financial.cashFlow.postNewLoanRepaymentCash;
   const stressCash = stress.stressed.cashFlow.postNewLoanRepaymentCash;
   
-  if (stressCash < baseCash) {
+  const hasStressVulnerability = 
+    stressCash <= 0 || 
+    decision.status === 'HIGH_RISK' ||
+    decision.reasonCodes.includes("STRESS_RESILIENCE_THIN") ||
+    decision.reasonCodes.includes("STRESS_EXISTING_DEBT_PRESSURE") ||
+    decision.reasonCodes.includes("STRESS_POST_REPAYMENT_CASH_NEGATIVE");
+
+  if (hasStressVulnerability) {
     let severity: ThreatSeverity = "MEDIUM";
     if (stressCash <= 0 || decision.status === 'HIGH_RISK') {
       severity = "HIGH";
     }
 
-    const stressSourceDetail = `The prototype stress case combines lower milk yield (-20%) and higher feed cost (+15%). Post-repayment cash falls to ${formatCurrency(stressCash)}.`;
+    const stressSourceDetail = `The prototype evaluates milk-yield reduction and feed-cost increase together in one combined stress scenario; the independent financial impact of each factor is not measured separately. Post-repayment cash falls to ${formatCurrency(stressCash)}.`;
 
     threats.push({
       id: "THREAT_PRODUCTION_YIELD",
@@ -162,11 +169,11 @@ export function calculateThreatAnalysis(
       id: "THREAT_EVIDENCE_UNCERTAINTY",
       category: "EVIDENCE_UNCERTAINTY",
       title: "Local-market evidence uncertainty",
-      description: "Available mapped evidence may not fully represent businesses, buyers or support services in the selected village.",
+      description: "This represents uncertainty in the local evidence available for the decision. It does not mean the business itself has medium/high risk. Available mapped evidence may not fully represent businesses, buyers or support services in the selected village.",
       sourceType: "LOCAL_EVIDENCE",
       sourceDetail: !isEvidenceAvailable ? "Map provider data is currently unavailable." : (isDistrictFallback ? "Evidence relies on district-level fallback data rather than village-level precision." : "Sparse commercial map data limits deterministic market visibility."),
       affectedArea: ["Market Demand", "Competitive Landscape", "Support Services"],
-      severity: !isEvidenceAvailable ? "UNKNOWN" : (evidenceConfidenceLevel === 'INSUFFICIENT' ? "MEDIUM" : "LOW"),
+      severity: "UNKNOWN",
       confidence: !isEvidenceAvailable ? "INSUFFICIENT" : evidenceConfidenceLevel,
       notVerified: [
         "unmapped businesses",
@@ -185,19 +192,20 @@ export function calculateThreatAnalysis(
         id: "THREAT_INFRASTRUCTURE",
         category: "INFRASTRUCTURE",
         title: "Support infrastructure risk",
-        description: "Few mapped support-infrastructure signals were found in the current data.",
+        description: "No relevant mapped support-infrastructure signals were found in the current 10 km evidence.",
         sourceType: "LOCAL_EVIDENCE",
         sourceDetail: "0 relevant support facilities identified within a 10km radius.",
         affectedArea: ["Animal Health", "Operational Continuity"],
-        severity: "MEDIUM",
+        severity: "UNKNOWN",
         confidence: evidenceConfidenceLevel,
         notVerified: [
           "unmapped local services",
           "informal/private service availability",
           "actual operating hours",
-          "service cost"
+          "service cost",
+          "travel time"
         ],
-        mitigationAction: "Confirm veterinary/support-service availability, travel time and cost before investment."
+        mitigationAction: "Confirm actual veterinary/support-service availability, travel time and cost before relying on this map result."
       });
     }
   }

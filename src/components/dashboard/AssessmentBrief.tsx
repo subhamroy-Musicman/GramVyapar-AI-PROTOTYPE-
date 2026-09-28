@@ -476,7 +476,7 @@ export function AssessmentBrief({ data, assessment, stress, decision, onBack, on
 
             {threatAnalysis.threats.length === 0 ? (
               <div className="bg-surface-subtle p-6 rounded-xl border border-border-subtle text-center">
-                <p className="text-sm text-text-secondary font-medium">No deterministically derived threats identified from current parameters.</p>
+                <p className="text-sm text-text-secondary font-medium">No material threat was identified by the current deterministic stress and evidence rules. Field validation is still required.</p>
               </div>
             ) : (
               <div className="space-y-4">

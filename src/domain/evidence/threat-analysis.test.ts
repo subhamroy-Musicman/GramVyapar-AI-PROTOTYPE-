@@ -41,8 +41,9 @@ describe('Threat Analysis', () => {
     return { financial, stress, decision, evidence, marketReach };
   };
 
-  it('Yield/feed stress can generate modelled threats from existing stress result', () => {
-    const { financial, stress, decision, evidence, marketReach } = createMockInputs(10000, 5000, 'PROCEED', [], 'MEDIUM', false, true, 2);
+  it('Yield/feed stress can generate modelled threats from existing stress result when vulnerable', () => {
+    // Add STRESS_RESILIENCE_THIN to trigger the vulnerability check
+    const { financial, stress, decision, evidence, marketReach } = createMockInputs(10000, 5000, 'MODIFY', ['STRESS_RESILIENCE_THIN'], 'MEDIUM', false, true, 2);
     const result = calculateThreatAnalysis(financial, stress, decision, evidence, marketReach, null);
     
     expect(result.threats.some(t => t.category === 'PRODUCTION')).toBe(true);
@@ -50,14 +51,23 @@ describe('Threat Analysis', () => {
   });
 
   it('No isolated impact claim is made if the current engine only uses a combined stress scenario', () => {
-    const { financial, stress, decision, evidence, marketReach } = createMockInputs(10000, 5000, 'PROCEED', [], 'MEDIUM', false, true, 2);
+    const { financial, stress, decision, evidence, marketReach } = createMockInputs(10000, 5000, 'MODIFY', ['STRESS_RESILIENCE_THIN'], 'MEDIUM', false, true, 2);
     const result = calculateThreatAnalysis(financial, stress, decision, evidence, marketReach, null);
     
     const prod = result.threats.find(t => t.category === 'PRODUCTION')!;
     const input = result.threats.find(t => t.category === 'INPUT_COST')!;
     
-    expect(prod.sourceDetail).toContain('combines lower milk yield (-20%) and higher feed cost (+15%)');
-    expect(input.sourceDetail).toContain('combines lower milk yield (-20%) and higher feed cost (+15%)');
+    expect(prod.sourceDetail).toContain('evaluates milk-yield reduction and feed-cost increase together in one combined stress scenario');
+    expect(input.sourceDetail).toContain('evaluates milk-yield reduction and feed-cost increase together in one combined stress scenario');
+  });
+
+  it('stressCash < baseCash alone does NOT generate a Production or Input-Cost threat (Healthy Case)', () => {
+    // stressCash is 5000, baseCash is 10000, decision is PROCEED, no stress reasons
+    const { financial, stress, decision, evidence, marketReach } = createMockInputs(10000, 5000, 'PROCEED', [], 'MEDIUM', false, true, 2);
+    const result = calculateThreatAnalysis(financial, stress, decision, evidence, marketReach, null);
+    
+    expect(result.threats.some(t => t.category === 'PRODUCTION')).toBe(false);
+    expect(result.threats.some(t => t.category === 'INPUT_COST')).toBe(false);
   });
 
   it('Negative stressed post-repayment cash can generate financing threat', () => {
@@ -83,7 +93,18 @@ describe('Threat Analysis', () => {
     
     const threat = result.threats.find(t => t.category === 'EVIDENCE_UNCERTAINTY')!;
     expect(threat).toBeDefined();
+    expect(threat.severity).toBe('UNKNOWN');
     expect(threat.confidence).toBe('LOW');
+  });
+
+  it('Provider unavailable produces severity UNKNOWN', () => {
+    const { financial, stress, decision, evidence, marketReach } = createMockInputs(10000, 8000, 'PROCEED', [], 'MEDIUM', false, false, 2);
+    const result = calculateThreatAnalysis(financial, stress, decision, evidence, marketReach, null);
+    
+    const threat = result.threats.find(t => t.category === 'EVIDENCE_UNCERTAINTY')!;
+    expect(threat).toBeDefined();
+    expect(threat.severity).toBe('UNKNOWN');
+    expect(threat.confidence).toBe('INSUFFICIENT');
   });
 
   it('Local evidence failure preserves financial/stress threats', () => {
@@ -122,11 +143,16 @@ describe('Threat Analysis', () => {
     expect(result.threats.some(t => t.category === 'SUPPLY_CHAIN')).toBe(false);
   });
 
-  it('Infrastructure threat only appears under sufficiently supported evidence conditions', () => {
+  it('Infrastructure threat only appears under sufficiently supported evidence conditions with UNKNOWN severity', () => {
     // Sparse infra, good evidence -> threat
     const input1 = createMockInputs(10000, 8000, 'PROCEED', [], 'MEDIUM', false, true, 0);
     const res1 = calculateThreatAnalysis(input1.financial, input1.stress, input1.decision, input1.evidence, input1.marketReach, null);
-    expect(res1.threats.some(t => t.category === 'INFRASTRUCTURE')).toBe(true);
+    
+    const infraThreat = res1.threats.find(t => t.category === 'INFRASTRUCTURE')!;
+    expect(infraThreat).toBeDefined();
+    expect(infraThreat.severity).toBe('UNKNOWN');
+    expect(infraThreat.description).not.toContain('unavailable');
+    expect(infraThreat.description).toContain('No relevant mapped support-infrastructure signals');
     
     // Sparse infra, poor evidence -> no threat (too weak to make that assertion)
     const input2 = createMockInputs(10000, 8000, 'PROCEED', [], 'LOW', false, true, 0);
