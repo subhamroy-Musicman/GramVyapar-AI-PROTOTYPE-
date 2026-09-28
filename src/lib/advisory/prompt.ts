@@ -89,6 +89,11 @@ THREAT ANALYSIS:
 - Do not invent seasonality, buyer dependency, or supply-chain bottlenecks if they are not supplied.
 - Do not invent causes or mitigation actions that are not present in the supplied threat items.
 
+COMPETITOR MAPPING:
+- Explain only the supplied CompetitorMappingResult.
+- Mapped entities are evidence signals, not confirmed competitors.
+- Do not infer market saturation or competition intensity.
+
 LOCAL VERIFICATION RECOMMENDATIONS:
 Encourage practical verification before borrowing (e.g., verifying milk price, feed price, animal cost, veterinary access, financing terms).
 

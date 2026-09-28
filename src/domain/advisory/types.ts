@@ -71,6 +71,7 @@ export interface AdvisoryInput {
     opportunityAnalysis?: any;
     swotAnalysis?: any;
     threatAnalysis?: any;
+    competitorMapping?: any;
   };
 }
 

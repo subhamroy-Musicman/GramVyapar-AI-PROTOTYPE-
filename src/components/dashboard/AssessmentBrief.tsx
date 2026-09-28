@@ -13,6 +13,7 @@ import { calculateMarketReach } from "@/domain/evidence/market-reach";
 import { calculateOpportunityAnalysis } from "@/domain/evidence/opportunity-analysis";
 import { calculateSwotAnalysis } from "@/domain/evidence/swot-analysis";
 import { calculateThreatAnalysis } from "@/domain/evidence/threat-analysis";
+import { calculateCompetitorMapping } from "@/domain/evidence/competitor-mapping";
 
 interface AssessmentBriefProps {
   data: AssessmentData; // Form data
@@ -26,9 +27,9 @@ interface AssessmentBriefProps {
 export function AssessmentBrief({ data, assessment, stress, decision, onBack, onReset }: AssessmentBriefProps) {
   const [terminalEvidence, setTerminalEvidence] = useState<EvidenceResult | 'UNAVAILABLE' | null>(null);
 
-  const { swotAnalysis, threatAnalysis } = useMemo(() => {
+  const { swotAnalysis, threatAnalysis, competitorMapping } = useMemo(() => {
     if (!terminalEvidence) {
-      return { swotAnalysis: null, threatAnalysis: null }; // wait for fetch to complete or fail
+      return { swotAnalysis: null, threatAnalysis: null, competitorMapping: null }; // wait for fetch to complete or fail
     }
     
     let reach = null;
@@ -41,7 +42,8 @@ export function AssessmentBrief({ data, assessment, stress, decision, onBack, on
     
     return {
       swotAnalysis: calculateSwotAnalysis(assessment, stress, terminalEvidence, reach, opps),
-      threatAnalysis: calculateThreatAnalysis(assessment, stress, decision, terminalEvidence, reach, opps)
+      threatAnalysis: calculateThreatAnalysis(assessment, stress, decision, terminalEvidence, reach, opps),
+      competitorMapping: calculateCompetitorMapping(terminalEvidence)
     };
   }, [terminalEvidence, assessment, stress, decision]);
 
@@ -325,6 +327,81 @@ export function AssessmentBrief({ data, assessment, stress, decision, onBack, on
           state={data.state} 
           onTerminalState={setTerminalEvidence}
         />
+
+        {/* SECTION G1.5: COMPETITOR MAPPING */}
+        {competitorMapping && (
+          <section className="bg-white p-6 md:p-8 rounded-xl shadow-sm border border-border-subtle min-w-0">
+            <div className="mb-6">
+              <h3 className="text-lg font-serif text-text-primary mb-2">Competitor Mapping</h3>
+              <p className="text-sm text-text-secondary">{competitorMapping.interpretation}</p>
+            </div>
+
+            {competitorMapping.status === 'DATA_UNAVAILABLE' ? (
+              <div className="bg-surface-subtle p-6 rounded-xl border border-border-subtle text-center">
+                <p className="text-sm text-text-secondary font-medium">Mapped competitor/business evidence unavailable.</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="p-4 bg-blue-50/50 rounded-lg border border-blue-100">
+                    <p className="text-xs text-blue-700 font-bold uppercase tracking-wider mb-1">Within 5 km</p>
+                    <p className="text-2xl font-serif text-blue-900">{competitorMapping.radius5km?.mappedSimilarBusinessSignals ?? '-'}</p>
+                    <p className="text-[10px] text-blue-600/80 mt-1">Mapped Similar-Business Signals</p>
+                  </div>
+                  <div className="p-4 bg-blue-50/50 rounded-lg border border-blue-100">
+                    <p className="text-xs text-blue-700 font-bold uppercase tracking-wider mb-1">Within 10 km</p>
+                    <p className="text-2xl font-serif text-blue-900">{competitorMapping.radius10km?.mappedSimilarBusinessSignals ?? '-'}</p>
+                    <p className="text-[10px] text-blue-600/80 mt-1">Mapped Similar-Business Signals</p>
+                  </div>
+                  <div className="p-4 bg-surface-subtle rounded-lg border border-border-subtle">
+                    <p className="text-xs text-text-secondary font-bold uppercase tracking-wider mb-1">Evidence Confidence</p>
+                    <p className="text-sm font-bold text-text-primary mt-2">{competitorMapping.evidenceConfidence}</p>
+                  </div>
+                </div>
+
+                {competitorMapping.entities.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-bold text-text-secondary uppercase tracking-wider border-b border-border-subtle pb-2 mb-4">Nearest Mapped Signals</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {competitorMapping.entities.slice(0, 6).map((entity) => (
+                        <div key={entity.id} className="p-3 bg-surface-subtle border border-border-subtle rounded-lg">
+                          <p className="text-sm font-medium text-text-primary truncate">{entity.name || "Unnamed mapped dairy-related signal"}</p>
+                          <div className="flex justify-between items-end mt-2">
+                            <span className="text-[10px] px-1.5 py-0.5 bg-white border border-border-subtle rounded text-slate-500 uppercase">
+                              Mapped dairy-related signal
+                            </span>
+                            {entity.distanceKm !== null && entity.distanceKm !== undefined && (
+                              <span className="text-xs text-text-secondary font-medium">Approx. {entity.distanceKm.toFixed(1)} km</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t border-border-subtle">
+                  <div>
+                    <h4 className="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-2">What this does not prove</h4>
+                    <ul className="text-xs text-text-secondary leading-relaxed list-disc pl-4 space-y-1">
+                      {competitorMapping.limitations.map((lim, idx) => (
+                        <li key={idx}>{lim}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block mb-2">Validate before investing</h4>
+                    <ul className="text-xs text-text-secondary leading-relaxed list-disc pl-4 space-y-1">
+                      {competitorMapping.validationActions.map((act, idx) => (
+                        <li key={idx}>{act}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+          </section>
+        )}
 
         {/* SECTION G2: SWOT ANALYSIS */}
         {swotAnalysis && (
