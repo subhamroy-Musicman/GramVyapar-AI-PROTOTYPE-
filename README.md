@@ -284,6 +284,25 @@ The architecture is designed to support future business categories, but the curr
 
 ---
 
+## Future Enhancements — Feasible in a 36-Hour SIH Build
+
+*(Note: All items below are FUTURE / NOT YET IMPLEMENTED)*
+
+- **Expand beyond Dairy** into multiple rural micro-business templates such as Kirana, Tailoring, Poultry, Goat Rearing, Small Food Processing, Repair Services, and other locally relevant businesses.
+- **Reuse the same deterministic financial engine**, scheme routing, stress testing, pricing, and viability framework for each new business type.
+- **Save and resume assessments** for field visits and repeat users.
+- **Download/share a simple assessment summary** or PDF for entrepreneurs and field officers.
+- **Improve multilingual voice support** with more reliable language-specific TTS fallback.
+- **Add PWA/offline support** for basic assessment flow in low-connectivity rural areas.
+- **Add a simple map view** of nearby mapped business/support signals already obtained from OSM.
+- **Make scheme rules configurable** so more government financing schemes can be added without rewriting the core engine.
+
+GramVyapar AI is designed as a modular rural-business assessment platform. Dairy is the current MVP vertical, while future versions can support many more micro-enterprise categories by plugging business-specific cost, revenue and risk assumptions into the same deterministic assessment framework.
+
+Future expansion will prioritize businesses that are common in rural and semi-urban India and can be modeled reliably with structured financial inputs.
+
+---
+
 ## Disclaimer
 
 GramVyapar AI is a hackathon decision-support prototype. Its financing categories and repayment assumptions are indicative prototype logic and should not be treated as official loan approval, professional financial advice, or guaranteed business outcomes.
