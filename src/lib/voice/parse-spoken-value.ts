@@ -1,7 +1,7 @@
 import { ParsedVoiceValue } from "../../domain/voice/types";
 
 export function parseSpokenValue(transcript: string, fieldType: 'currency' | 'count' = 'currency'): ParsedVoiceValue {
-  const cleanStr = transcript.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
+  const cleanStr = transcript.toLowerCase().replace(/[^a-z0-9\.\s]/g, '').trim();
 
   if (!cleanStr) {
     return { status: "INVALID", transcript, reason: "Empty speech" };
@@ -9,7 +9,7 @@ export function parseSpokenValue(transcript: string, fieldType: 'currency' | 'co
 
   // Attempt direct numeric parsing if it's all digits
   const digitMatch = cleanStr.replace(/\s+/g, '');
-  if (/^\d+$/.test(digitMatch)) {
+  if (/^\d+(\.\d+)?$/.test(digitMatch)) {
     return createResult(parseFloat(digitMatch), transcript, fieldType);
   }
 
@@ -48,9 +48,9 @@ export function parseSpokenValue(transcript: string, fieldType: 'currency' | 'co
       continue;
     }
 
-    // Is it a direct digit string within the phrase? (e.g. "75 thousand")
-    if (/^\d+$/.test(word)) {
-      currentSegment += parseInt(word, 10);
+    // Is it a direct digit string within the phrase? (e.g. "75 thousand", "1.5 lakh")
+    if (/^\d+(\.\d+)?$/.test(word)) {
+      currentSegment += parseFloat(word);
       hasValidNumber = true;
       continue;
     }

@@ -107,7 +107,7 @@ export function VoiceInputButton({ language, fieldType, onConfirm }: VoiceInputB
       )}
 
       {state === 'CONFIRMING' && parsed && (
-        <div className="w-full mt-2 bg-white rounded-lg shadow-sm border border-border-subtle overflow-hidden">
+        <div className="basis-full w-full shrink-0 mt-2 bg-white rounded-lg shadow-sm border border-border-subtle overflow-hidden">
           <div className="p-3 bg-slate-50 border-b border-border-subtle">
             <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider mb-1">We heard</p>
             <p className="text-sm font-medium text-slate-800 break-words">&quot;{parsed.transcript}&quot;</p>
@@ -171,7 +171,7 @@ export function VoiceInputButton({ language, fieldType, onConfirm }: VoiceInputB
       )}
 
       {state === 'ERROR' && (
-        <div className="w-full mt-2 bg-white rounded-lg shadow-sm border border-red-100 overflow-hidden">
+        <div className="basis-full w-full shrink-0 mt-2 bg-white rounded-lg shadow-sm border border-red-100 overflow-hidden">
           <div className="p-3 bg-red-50 text-red-700 text-xs flex gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <p>{errorMsg}</p>

@@ -19,6 +19,10 @@ describe('Voice Parser', () => {
     expect(parseSpokenValue("1 lakh")).toEqual({ status: "PARSED", value: 100000, transcript: "1 lakh", normalizedDisplay: "₹1,00,000" });
     expect(parseSpokenValue("one lakh fifty thousand")).toEqual({ status: "PARSED", value: 150000, transcript: "one lakh fifty thousand", normalizedDisplay: "₹1,50,000" });
     expect(parseSpokenValue("two lakhs")).toEqual({ status: "PARSED", value: 200000, transcript: "two lakhs", normalizedDisplay: "₹2,00,000" });
+    expect(parseSpokenValue("1.5 lakh")).toEqual({ status: "PARSED", value: 150000, transcript: "1.5 lakh", normalizedDisplay: "₹1,50,000" });
+    expect(parseSpokenValue("1..5 lakh").status).toBe("AMBIGUOUS");
+    expect(parseSpokenValue(".5 lakh").status).toBe("AMBIGUOUS");
+    expect(parseSpokenValue("1.5.2 lakh").status).toBe("AMBIGUOUS");
   });
 
   it('handles currency words safely', () => {

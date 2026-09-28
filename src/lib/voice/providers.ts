@@ -24,34 +24,59 @@ export class BrowserSTTProvider {
         return;
       }
 
+      let settled = false;
+      const resolveOnce = (value: VoiceRecognitionResult) => {
+        if (settled) return;
+        settled = true;
+        resolve(value);
+      };
+      const rejectOnce = (error: VoiceRecognitionError) => {
+        if (settled) return;
+        settled = true;
+        reject(error);
+      };
+
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       this.recognition = new SpeechRecognition();
       
       this.recognition.lang = VOICE_LOCALE_MAP[language] || 'en-IN';
       this.recognition.continuous = false;
-      this.recognition.interimResults = false;
+      this.recognition.interimResults = true;
       this.recognition.maxAlternatives = 1;
 
       this.recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        resolve({ transcript, isFinal: true });
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            const transcript = event.results[i][0].transcript;
+            if (transcript && transcript.trim().length > 0) {
+              resolveOnce({ transcript, isFinal: true });
+            }
+            return;
+          }
+        }
       };
 
       this.recognition.onerror = (event: any) => {
-        if (event.error === 'not-allowed') reject('MIC_PERMISSION_DENIED' as VoiceRecognitionError);
-        else if (event.error === 'no-speech') reject('NO_SPEECH' as VoiceRecognitionError);
-        else if (event.error === 'aborted') reject('ABORTED' as VoiceRecognitionError);
-        else reject('RECOGNITION_FAILED' as VoiceRecognitionError);
+        if (event.error === 'not-allowed') rejectOnce('MIC_PERMISSION_DENIED');
+        else if (event.error === 'no-speech') rejectOnce('NO_SPEECH');
+        else if (event.error === 'aborted') rejectOnce('ABORTED');
+        else rejectOnce('RECOGNITION_FAILED');
       };
 
       this.recognition.onnomatch = () => {
-        reject('RECOGNITION_FAILED' as VoiceRecognitionError);
+        rejectOnce('RECOGNITION_FAILED');
+      };
+
+      this.recognition.onend = () => {
+        if (!settled) {
+          rejectOnce('NO_SPEECH');
+        }
       };
 
       try {
         this.recognition.start();
       } catch (e) {
-        reject('RECOGNITION_FAILED' as VoiceRecognitionError);
+        rejectOnce('RECOGNITION_FAILED');
       }
     });
   }
