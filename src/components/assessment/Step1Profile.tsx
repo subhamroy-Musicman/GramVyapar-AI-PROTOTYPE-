@@ -132,7 +132,7 @@ export function Step1Profile({ onNext }: Step1ProfileProps) {
             <FormField control={form.control} name="marginCapital" render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm font-semibold text-text-primary">Own capital available (₹) *</FormLabel>
-                <div className="flex gap-2 items-center">
+                <div className="flex flex-wrap gap-2 items-center">
                   <FormControl>
                     <Input 
                       type="number" 

@@ -80,20 +80,20 @@ export function VoiceInputButton({ language, fieldType, onConfirm }: VoiceInputB
   };
 
   return (
-    <div className="relative inline-flex flex-col items-end">
+    <>
       {state === 'IDLE' && (
         <button
           onClick={handleStart}
           type="button"
           aria-label="Enter value by voice"
-          className="p-2 bg-slate-100 hover:bg-brand-50 text-slate-600 hover:text-brand-600 rounded-full transition-colors focus:ring-2 focus:ring-brand-500"
+          className="p-2 bg-slate-100 hover:bg-brand-50 text-slate-600 hover:text-brand-600 rounded-full transition-colors focus:ring-2 focus:ring-brand-500 shrink-0"
         >
           <Mic className="w-4 h-4" />
         </button>
       )}
 
       {state === 'LISTENING' && (
-        <div className="flex items-center gap-2 p-1.5 pl-3 bg-brand-50 border border-brand-200 rounded-full">
+        <div className="flex items-center gap-2 p-1.5 pl-3 bg-brand-50 border border-brand-200 rounded-full shrink-0">
           <span className="text-xs font-medium text-brand-700 animate-pulse">Listening...</span>
           <button 
             type="button"
@@ -107,7 +107,7 @@ export function VoiceInputButton({ language, fieldType, onConfirm }: VoiceInputB
       )}
 
       {state === 'CONFIRMING' && parsed && (
-        <div className="absolute top-full right-0 mt-2 z-50 w-64 bg-white rounded-lg shadow-lg border border-border-subtle overflow-hidden">
+        <div className="w-full mt-2 bg-white rounded-lg shadow-sm border border-border-subtle overflow-hidden">
           <div className="p-3 bg-slate-50 border-b border-border-subtle">
             <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider mb-1">We heard</p>
             <p className="text-sm font-medium text-slate-800 break-words">&quot;{parsed.transcript}&quot;</p>
@@ -171,7 +171,7 @@ export function VoiceInputButton({ language, fieldType, onConfirm }: VoiceInputB
       )}
 
       {state === 'ERROR' && (
-        <div className="absolute top-full right-0 mt-2 z-50 w-56 bg-white rounded-lg shadow-lg border border-red-100 overflow-hidden">
+        <div className="w-full mt-2 bg-white rounded-lg shadow-sm border border-red-100 overflow-hidden">
           <div className="p-3 bg-red-50 text-red-700 text-xs flex gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <p>{errorMsg}</p>
@@ -194,6 +194,6 @@ export function VoiceInputButton({ language, fieldType, onConfirm }: VoiceInputB
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
