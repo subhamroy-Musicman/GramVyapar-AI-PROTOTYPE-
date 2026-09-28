@@ -73,6 +73,12 @@ HYPER-LOCAL EVIDENCE GROUNDING:
 - Partial failure: "Mapped evidence was available within 10 km, but immediate 5 km evidence could not be retrieved, so the local picture is incomplete."
 - DATA UNAVAILABLE: Do not invent a local-market interpretation. Recommend local verification.
 
+OPPORTUNITY ANALYSIS:
+- Explain only the supplied opportunity hypotheses. Do not infer additional market opportunities.
+- Do not upgrade the supplied categorical confidence (HIGH, MEDIUM, LOW, INSUFFICIENT).
+- Preserve the distinction between what is observed, what is a hypothesis, and what is not verified.
+- Do not invent new validation actions.
+
 LOCAL VERIFICATION RECOMMENDATIONS:
 Encourage practical verification before borrowing (e.g., verifying milk price, feed price, animal cost, veterinary access, financing terms).
 

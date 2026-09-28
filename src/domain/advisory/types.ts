@@ -68,6 +68,7 @@ export interface AdvisoryInput {
     salesChannelSignal: string;
     limitations: string[];
     marketReach?: any;
+    opportunityAnalysis?: any;
   };
 }
 
