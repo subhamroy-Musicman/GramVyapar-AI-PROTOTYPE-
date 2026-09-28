@@ -186,7 +186,7 @@ export function calculateThreatAnalysis(
   }
 
   // 5. SUPPORT INFRASTRUCTURE RISK
-  if (isEvidenceAvailable && marketReach && evidenceConfidenceLevel !== 'LOW' && evidenceConfidenceLevel !== 'INSUFFICIENT') {
+  if (isEvidenceAvailable && marketReach && marketReach.status !== 'DATA_UNAVAILABLE' && evidenceConfidenceLevel !== 'LOW' && evidenceConfidenceLevel !== 'INSUFFICIENT') {
     if (marketReach.radius10km.supportInfrastructure === 0) {
       threats.push({
         id: "THREAT_INFRASTRUCTURE",

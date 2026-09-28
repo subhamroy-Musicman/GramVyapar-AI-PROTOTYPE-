@@ -115,8 +115,8 @@ describe('Threat Analysis', () => {
     expect(result.threats.some(t => t.category === 'FINANCING')).toBe(true);
   });
 
-  it('Local evidence failure does not fabricate local threats', () => {
-    const { financial, stress, decision, evidence, marketReach } = createMockInputs(10000, 8000, 'PROCEED', [], 'MEDIUM', false, false, 2);
+  it('Local evidence failure does not fabricate local threats, even if infrastructure count defaults to zero', () => {
+    const { financial, stress, decision, evidence, marketReach } = createMockInputs(10000, 8000, 'PROCEED', [], 'MEDIUM', false, false, 0);
     const result = calculateThreatAnalysis(financial, stress, decision, evidence, marketReach, null);
     
     expect(result.threats.some(t => t.category === 'INFRASTRUCTURE')).toBe(false);
