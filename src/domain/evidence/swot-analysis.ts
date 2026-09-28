@@ -39,16 +39,17 @@ export interface SwotAnalysisResult {
 export function calculateSwotAnalysis(
   financial: FinancialAssessment,
   stress: StressAssessment,
-  evidence: EvidenceResult,
-  marketReach: MarketReachResult,
-  opportunityAnalysis: OpportunityAnalysisResult
+  evidence: EvidenceResult | null | 'UNAVAILABLE',
+  marketReach: MarketReachResult | null,
+  opportunityAnalysis: OpportunityAnalysisResult | null
 ): SwotAnalysisResult {
   const strengths: SwotItem[] = [];
   const weaknesses: SwotItem[] = [];
   const opportunities: SwotItem[] = [];
   const threats: SwotItem[] = [];
   
-  const isDistrictFallback = evidence.location?.resolutionLevel === 'DISTRICT';
+  const isEvidenceAvailable = evidence && evidence !== 'UNAVAILABLE' && (evidence as EvidenceResult).availability !== 'PROVIDER_UNAVAILABLE';
+  const isDistrictFallback = isEvidenceAvailable && (evidence as EvidenceResult).location?.resolutionLevel === 'DISTRICT';
   const evidenceConfidenceLevel: SwotConfidence = isDistrictFallback ? "LOW" : "MEDIUM";
 
   // STRENGTHS
@@ -74,7 +75,7 @@ export function calculateSwotAnalysis(
     });
   }
 
-  if (marketReach.radius10km?.potentialSalesChannels > 0) {
+  if (marketReach && marketReach.radius10km?.potentialSalesChannels > 0) {
     strengths.push({
       id: "S_MAPPED_CHANNELS",
       category: "STRENGTH",
@@ -85,7 +86,7 @@ export function calculateSwotAnalysis(
     });
   }
 
-  if (marketReach.radius10km?.supportInfrastructure > 0) {
+  if (marketReach && marketReach.radius10km?.supportInfrastructure > 0) {
     strengths.push({
       id: "S_SUPPORT_INFRA",
       category: "STRENGTH",
@@ -97,35 +98,12 @@ export function calculateSwotAnalysis(
   }
 
   // WEAKNESSES
-  const debtRatio = financial.funding.fundingGap / financial.project.projectCost;
-  if (debtRatio > 0.8) {
-    weaknesses.push({
-      id: "W_HIGH_DEBT",
-      category: "WEAKNESS",
-      statement: "The project depends substantially on external financing (prototype heuristic).",
-      sourceType: "CALCULATED_RESULT",
-      sourceDetail: `${(debtRatio * 100).toFixed(0)}% of the project cost requires external funding.`,
-      confidence: "HIGH",
-      action: "Consider increasing own contribution or starting at a smaller scale."
-    });
-  }
-
-  const baseCash = financial.cashFlow.postNewLoanRepaymentCash;
-  const stressCash = stress.stressed.cashFlow.postNewLoanRepaymentCash;
-  if (baseCash > 0 && stressCash > 0 && stressCash < baseCash * 0.7) {
-    weaknesses.push({
-      id: "W_STRESS_SENSITIVE",
-      category: "WEAKNESS",
-      statement: "The business is sensitive to adverse changes in milk yield and feed cost, though it remains viable in the scenario.",
-      sourceType: "STRESS_RESULT",
-      sourceDetail: `Post-repayment cash drops by ${formatCurrency(baseCash - stressCash)} under stress.`,
-      confidence: "HIGH",
-      action: "Maintain a strict cash buffer to handle potential yield drops."
-    });
-  }
+  // Removed arbitrary 80% debt-dependence rule as requested.
+  // Removed arbitrary 30% stress deterioration rule as requested.
+  // Leaving weaknesses empty if no internal business weakness is identified deterministically.
 
   // OPPORTUNITIES
-  opportunityAnalysis.opportunities.forEach(opp => {
+  opportunityAnalysis?.opportunities.forEach(opp => {
     opportunities.push({
       id: `O_${opp.id}`,
       category: "OPPORTUNITY",
@@ -138,6 +116,7 @@ export function calculateSwotAnalysis(
   });
 
   // THREATS
+  const stressCash = stress.stressed.cashFlow.postNewLoanRepaymentCash;
   if (stressCash < 0) {
     threats.push({
       id: "T_STRESS_DETERIORATION",
@@ -150,16 +129,19 @@ export function calculateSwotAnalysis(
     });
   }
 
-  if (evidence.commercialEvidenceCoverage === 'INSUFFICIENT' || evidence.commercialEvidenceCoverage === 'LOW' || isDistrictFallback) {
-    threats.push({
-      id: "T_SPARSE_EVIDENCE",
-      category: "THREAT",
-      statement: "Unmapped competitors or buyers may materially change the local market picture.",
-      sourceType: "LOCAL_EVIDENCE",
-      sourceDetail: isDistrictFallback ? "District-level data lacks village precision." : "Sparse commercial map data limits market visibility.",
-      confidence: "LOW",
-      action: "Conduct on-ground verification of local competitors and actual demand."
-    });
+  if (isEvidenceAvailable) {
+    const ev = evidence as EvidenceResult;
+    if (ev.commercialEvidenceCoverage === 'INSUFFICIENT' || ev.commercialEvidenceCoverage === 'LOW' || isDistrictFallback) {
+      threats.push({
+        id: "T_SPARSE_EVIDENCE",
+        category: "THREAT",
+        statement: "Unmapped competitors or buyers may materially change the local market picture.",
+        sourceType: "LOCAL_EVIDENCE",
+        sourceDetail: isDistrictFallback ? "District-level data lacks village precision." : "Sparse commercial map data limits market visibility.",
+        confidence: "LOW",
+        action: "Conduct on-ground verification of local competitors and actual demand."
+      });
+    }
   }
 
   const limitations = [
@@ -168,12 +150,16 @@ export function calculateSwotAnalysis(
     "SWOT does not guarantee business success."
   ];
 
-  if (marketReach.consumerBase.status === 'DATA_UNAVAILABLE') {
-    limitations.push("Consumer population is currently unavailable.");
-  }
-  
-  if (marketReach.status === 'LIMITED' || marketReach.status === 'DATA_UNAVAILABLE') {
-    limitations.push("Local map data may be incomplete.");
+  if (!isEvidenceAvailable || !marketReach || marketReach.status === 'DATA_UNAVAILABLE') {
+    limitations.push("Local evidence is unavailable, so location-specific SWOT items could not be evaluated.");
+  } else {
+    if (marketReach.consumerBase.status === 'DATA_UNAVAILABLE') {
+      limitations.push("Consumer population is currently unavailable.");
+    }
+    
+    if (marketReach.status === 'LIMITED') {
+      limitations.push("Local map data may be incomplete.");
+    }
   }
   
   if (opportunities.length > 0) {
@@ -183,13 +169,20 @@ export function calculateSwotAnalysis(
   const totalItems = strengths.length + weaknesses.length + opportunities.length + threats.length;
   let overallConfidence: SwotConfidence = "LOW";
   
-  if (totalItems > 0 && !isDistrictFallback && evidence.commercialEvidenceCoverage !== 'INSUFFICIENT') {
-    overallConfidence = "MEDIUM";
+  if (isEvidenceAvailable) {
+    const ev = evidence as EvidenceResult;
+    if (totalItems > 0 && !isDistrictFallback && ev.commercialEvidenceCoverage !== 'INSUFFICIENT') {
+      overallConfidence = "MEDIUM";
+    }
   }
 
   let summary = "";
   if (totalItems > 0) {
-    summary = "The current plan shows structured business economics, but local-market assumptions and downside resilience still require validation.";
+    if (!isEvidenceAvailable || !marketReach || marketReach.status === 'DATA_UNAVAILABLE') {
+      summary = "Financial SWOT evaluation completed, but local evidence was unavailable to construct a full market picture.";
+    } else {
+      summary = "The current plan shows structured business economics, but local-market assumptions and downside resilience still require validation.";
+    }
   } else {
     summary = "The financial model can be evaluated, but local evidence is not strong enough for a high-confidence market SWOT.";
   }

@@ -26,11 +26,18 @@ export function AssessmentBrief({ data, assessment, stress, decision, onBack, on
   const [terminalEvidence, setTerminalEvidence] = useState<EvidenceResult | 'UNAVAILABLE' | null>(null);
 
   const swotAnalysis = useMemo(() => {
-    if (!terminalEvidence || terminalEvidence === 'UNAVAILABLE' || (terminalEvidence as any).geocodeStatus !== 'SUCCESS') {
-      return null;
+    if (!terminalEvidence) {
+      return null; // wait for fetch to complete or fail
     }
-    const reach = calculateMarketReach(terminalEvidence);
-    const opps = calculateOpportunityAnalysis(terminalEvidence, reach);
+    
+    let reach = null;
+    let opps = null;
+    
+    if (terminalEvidence !== 'UNAVAILABLE' && (terminalEvidence as any).geocodeStatus === 'SUCCESS') {
+      reach = calculateMarketReach(terminalEvidence as EvidenceResult);
+      opps = calculateOpportunityAnalysis(terminalEvidence as EvidenceResult, reach);
+    }
+    
     return calculateSwotAnalysis(assessment, stress, terminalEvidence, reach, opps);
   }, [terminalEvidence, assessment, stress]);
 

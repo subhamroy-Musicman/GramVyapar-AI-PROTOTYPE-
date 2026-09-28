@@ -80,16 +80,58 @@ describe('SWOT Analysis', () => {
     expect(swot.opportunities[0].sourceType).toBe('OPPORTUNITY_HYPOTHESIS');
   });
 
-  it('Stress sensitivity can create Weakness or Threat', () => {
-    // Weakness case: drops >30% but remains >0
-    const wInputs = createMockInputs(10000, 10000, 5000, 0.5, 0, false, false);
-    const wSwot = calculateSwotAnalysis(wInputs.financial, wInputs.stress, wInputs.evidence, wInputs.marketReach, wInputs.opportunityAnalysis);
-    expect(wSwot.weaknesses.some(w => w.id === 'W_STRESS_SENSITIVE')).toBe(true);
-    
+  it('Stress negative cash creates Threat', () => {
     // Threat case: drops <0
     const tInputs = createMockInputs(10000, 10000, -1000, 0.5, 0, false, false);
     const tSwot = calculateSwotAnalysis(tInputs.financial, tInputs.stress, tInputs.evidence, tInputs.marketReach, tInputs.opportunityAnalysis);
     expect(tSwot.threats.some(t => t.id === 'T_STRESS_DETERIORATION')).toBe(true);
+    expect(tSwot.weaknesses.length).toBe(0); // No arbitrary weakness
+  });
+
+  it('No arbitrary 30% stress deterioration weakness exists', () => {
+    // Stress drops by 50% but remains > 0.
+    const wInputs = createMockInputs(10000, 10000, 5000, 0.5, 0, false, false);
+    const wSwot = calculateSwotAnalysis(wInputs.financial, wInputs.stress, wInputs.evidence, wInputs.marketReach, wInputs.opportunityAnalysis);
+    expect(wSwot.weaknesses.some(w => w.id === 'W_STRESS_SENSITIVE')).toBe(false); // Should not exist
+  });
+
+  it('No arbitrary 80% debt weakness exists', () => {
+    // Debt ratio is 90%
+    const wInputs = createMockInputs(10000, 10000, 10000, 0.9, 0, false, false);
+    const wSwot = calculateSwotAnalysis(wInputs.financial, wInputs.stress, wInputs.evidence, wInputs.marketReach, wInputs.opportunityAnalysis);
+    expect(wSwot.weaknesses.some(w => w.id === 'W_HIGH_DEBT')).toBe(false); // Should not exist
+  });
+
+  it('Local evidence provider failure does not remove valid financial Strengths', () => {
+    const { financial, stress } = createMockInputs(5000, 2000, 2000, 0.5, 0, false, false);
+    const swot = calculateSwotAnalysis(financial, stress, 'UNAVAILABLE', null, null);
+    
+    expect(swot.strengths.some(s => s.id === 'S_POSITIVE_SURPLUS')).toBe(true);
+    expect(swot.strengths.some(s => s.id === 'S_POSITIVE_CASH_POST_REPAYMENT')).toBe(true);
+  });
+
+  it('Local evidence provider failure does not remove valid stress Threats', () => {
+    const { financial, stress } = createMockInputs(5000, 2000, -1000, 0.5, 0, false, false);
+    const swot = calculateSwotAnalysis(financial, stress, 'UNAVAILABLE', null, null);
+    
+    expect(swot.threats.some(t => t.id === 'T_STRESS_DETERIORATION')).toBe(true);
+  });
+
+  it('Local evidence provider failure produces no fabricated local Strength/Opportunity', () => {
+    const { financial, stress } = createMockInputs(5000, 2000, 2000, 0.5, 0, false, false);
+    const swot = calculateSwotAnalysis(financial, stress, 'UNAVAILABLE', null, null);
+    
+    expect(swot.strengths.some(s => s.id === 'S_MAPPED_CHANNELS')).toBe(false);
+    expect(swot.strengths.some(s => s.id === 'S_SUPPORT_INFRA')).toBe(false);
+    expect(swot.opportunities.length).toBe(0);
+    expect(swot.threats.some(t => t.id === 'T_SPARSE_EVIDENCE')).toBe(false);
+  });
+
+  it('Appropriate limitation is displayed when local evidence is unavailable', () => {
+    const { financial, stress } = createMockInputs(5000, 2000, 2000, 0.5, 0, false, false);
+    const swot = calculateSwotAnalysis(financial, stress, 'UNAVAILABLE', null, null);
+    
+    expect(swot.limitations).toContain('Local evidence is unavailable, so location-specific SWOT items could not be evaluated.');
   });
 
   it('Consumer-base unavailable becomes limitation, not business weakness', () => {
