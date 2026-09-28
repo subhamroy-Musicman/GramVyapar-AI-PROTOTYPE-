@@ -67,6 +67,7 @@ export interface AdvisoryInput {
     mappedDairyActivity: string;
     salesChannelSignal: string;
     limitations: string[];
+    marketReach?: any;
   };
 }
 
