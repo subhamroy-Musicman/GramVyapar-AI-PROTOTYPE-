@@ -83,7 +83,7 @@ export function calculatePricingIntelligence(
     pricePosition = "BELOW_OPERATING_BREAK_EVEN";
   } else if (userAssumedPricePerUnit < debtServiceBreakEvenPricePerUnit) {
     pricePosition = "COVERS_OPERATIONS_NOT_DEBT";
-  } else if (stressDebtServiceBreakEvenPricePerUnit !== null && userAssumedPricePerUnit < stressDebtServiceBreakEvenPricePerUnit) {
+  } else if (stressDebtServiceBreakEvenPricePerUnit === null || userAssumedPricePerUnit < stressDebtServiceBreakEvenPricePerUnit) {
     pricePosition = "COVERS_BASE_DEBT_SERVICE";
   } else {
     pricePosition = "COVERS_STRESS_DEBT_SERVICE";
@@ -95,7 +95,11 @@ export function calculatePricingIntelligence(
   } else if (pricePosition === "COVERS_OPERATIONS_NOT_DEBT") {
     summary = "The entered selling price covers projected operating costs but does not fully cover the modelled debt-service requirement.";
   } else if (pricePosition === "COVERS_BASE_DEBT_SERVICE") {
-    summary = "The entered selling price covers the base-case debt-service requirement but not the predefined stress-case break-even level.";
+    if (stressDebtServiceBreakEvenPricePerUnit === null) {
+      summary = "Base-case debt service is covered, but the stress-case break-even price could not be calculated because stressed production is zero or invalid.";
+    } else {
+      summary = "The entered selling price covers the base-case debt-service requirement but not the predefined stress-case break-even level.";
+    }
   } else {
     summary = "The entered selling price is above the modelled base and stress-case break-even requirements, but local buyer acceptance has not been verified.";
   }

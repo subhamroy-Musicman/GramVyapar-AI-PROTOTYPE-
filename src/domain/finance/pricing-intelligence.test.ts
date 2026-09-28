@@ -99,6 +99,28 @@ describe("Pricing Intelligence", () => {
     }
   });
 
+  it("Zero stress production: User price > base debt break-even => COVERS_BASE_DEBT_SERVICE", () => {
+    // Op BE = 10, Debt BE = 15. Price = 25. Stress prod = 0.
+    const { assessment, stress, inputs } = createMockData(25, 100, 1000, 500, 0, 1500);
+    const result = calculatePricingIntelligence(assessment, stress, inputs) as any;
+    expect(result.pricePosition).toBe("COVERS_BASE_DEBT_SERVICE");
+    expect(result.summary).toContain("stress-case break-even price could not be calculated");
+  });
+
+  it("Zero stress production: User price below operating break-even => BELOW_OPERATING_BREAK_EVEN", () => {
+    // Op BE = 10, Debt BE = 15. Price = 9. Stress prod = 0.
+    const { assessment, stress, inputs } = createMockData(9, 100, 1000, 500, 0, 1500);
+    const result = calculatePricingIntelligence(assessment, stress, inputs) as any;
+    expect(result.pricePosition).toBe("BELOW_OPERATING_BREAK_EVEN");
+  });
+
+  it("Zero stress production: User price between operating and debt => COVERS_OPERATIONS_NOT_DEBT", () => {
+    // Op BE = 10, Debt BE = 15. Price = 12. Stress prod = 0.
+    const { assessment, stress, inputs } = createMockData(12, 100, 1000, 500, 0, 1500);
+    const result = calculatePricingIntelligence(assessment, stress, inputs) as any;
+    expect(result.pricePosition).toBe("COVERS_OPERATIONS_NOT_DEBT");
+  });
+
   it("User price below operating break-even", () => {
     // Op cost 1000, prod 100 => operating BE = 10. Price = 9.
     const { assessment, stress, inputs } = createMockData(9, 100, 1000, 500, 100, 1200);
