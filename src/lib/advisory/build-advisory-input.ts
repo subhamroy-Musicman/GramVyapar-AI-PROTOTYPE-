@@ -11,6 +11,7 @@ import { calculateOpportunityAnalysis } from "../../domain/evidence/opportunity-
 import { calculateSwotAnalysis } from "../../domain/evidence/swot-analysis";
 import { calculateThreatAnalysis } from "../../domain/evidence/threat-analysis";
 import { calculateCompetitorMapping } from "../../domain/evidence/competitor-mapping";
+import { calculatePricingIntelligence } from "../../domain/finance/pricing-intelligence";
 
 export function buildAdvisoryInput(
   data: AssessmentData,
@@ -28,6 +29,27 @@ export function buildAdvisoryInput(
   const swotAnalysis = calculateSwotAnalysis(financial, stress, evidence, marketReach, opportunityAnalysis);
   const threatAnalysis = calculateThreatAnalysis(financial, stress, decision, evidence, marketReach, opportunityAnalysis);
   const competitorMapping = calculateCompetitorMapping(evidence);
+  
+  const inputs = {
+    animalCount: data.animalCount,
+    animalType: data.animalType,
+    animalPurchaseCost: data.animalPurchaseCost,
+    milkYieldPerDay: data.milkYieldPerDay,
+    milkPrice: data.milkPrice,
+    lactationDays: data.lactationDays,
+    feedCostPerDay: data.feedCostPerDay,
+    veterinaryAnnual: data.veterinaryAnnual,
+    labourMonthly: data.labourMonthly,
+    utilitiesMonthly: data.utilitiesMonthly,
+    insuranceAnnual: data.insuranceAnnual,
+    transportMonthly: data.transportMonthly,
+    otherOperatingAnnual: data.otherOperatingAnnual,
+    shedCost: data.shedCost,
+    equipmentCost: data.equipmentCost,
+    workingCapital: data.workingCapital,
+    otherSetupCost: data.otherSetupCost
+  };
+  const pricingIntelligence = calculatePricingIntelligence(financial, stress, inputs as any);
   
   return {
     language,
@@ -95,5 +117,6 @@ export function buildAdvisoryInput(
       threatAnalysis,
       competitorMapping
     },
+    pricingIntelligence
   };
 }

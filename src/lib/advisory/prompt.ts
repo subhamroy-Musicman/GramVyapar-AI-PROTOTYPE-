@@ -94,6 +94,12 @@ COMPETITOR MAPPING:
 - Mapped entities are evidence signals, not confirmed competitors.
 - Do not infer market saturation or competition intensity.
 
+PRICING INTELLIGENCE:
+- Explain only the supplied PricingIntelligenceResult.
+- The user-entered price is an assumption.
+- Calculated break-even prices are financial requirements, not verified market prices.
+- Do not invent local prices or purchasing-power information.
+
 LOCAL VERIFICATION RECOMMENDATIONS:
 Encourage practical verification before borrowing (e.g., verifying milk price, feed price, animal cost, veterinary access, financing terms).
 

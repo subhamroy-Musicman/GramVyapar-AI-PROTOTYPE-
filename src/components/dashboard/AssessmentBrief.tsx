@@ -14,6 +14,7 @@ import { calculateOpportunityAnalysis } from "@/domain/evidence/opportunity-anal
 import { calculateSwotAnalysis } from "@/domain/evidence/swot-analysis";
 import { calculateThreatAnalysis } from "@/domain/evidence/threat-analysis";
 import { calculateCompetitorMapping } from "@/domain/evidence/competitor-mapping";
+import { calculatePricingIntelligence } from "@/domain/finance/pricing-intelligence";
 
 interface AssessmentBriefProps {
   data: AssessmentData; // Form data
@@ -26,6 +27,29 @@ interface AssessmentBriefProps {
 
 export function AssessmentBrief({ data, assessment, stress, decision, onBack, onReset }: AssessmentBriefProps) {
   const [terminalEvidence, setTerminalEvidence] = useState<EvidenceResult | 'UNAVAILABLE' | null>(null);
+
+  const pricingIntelligence = useMemo(() => {
+    const inputs = {
+      animalCount: data.animalCount,
+      animalType: data.animalType,
+      animalPurchaseCost: data.animalPurchaseCost,
+      milkYieldPerDay: data.milkYieldPerDay,
+      milkPrice: data.milkPrice,
+      lactationDays: data.lactationDays,
+      feedCostPerDay: data.feedCostPerDay,
+      veterinaryAnnual: data.veterinaryAnnual,
+      labourMonthly: data.labourMonthly,
+      utilitiesMonthly: data.utilitiesMonthly,
+      insuranceAnnual: data.insuranceAnnual,
+      transportMonthly: data.transportMonthly,
+      otherOperatingAnnual: data.otherOperatingAnnual,
+      shedCost: data.shedCost,
+      equipmentCost: data.equipmentCost,
+      workingCapital: data.workingCapital,
+      otherSetupCost: data.otherSetupCost
+    };
+    return calculatePricingIntelligence(assessment, stress, inputs as any);
+  }, [assessment, stress, data]);
 
   const { swotAnalysis, threatAnalysis, competitorMapping } = useMemo(() => {
     if (!terminalEvidence) {
@@ -268,6 +292,105 @@ export function AssessmentBrief({ data, assessment, stress, decision, onBack, on
             * Loan terms are unchanged in this stress scenario.
           </p>
         </section>
+
+        {/* SECTION E.5: PRICING & MARKET VALUE */}
+        {pricingIntelligence !== "INSUFFICIENT_DATA" && (
+          <section className="bg-white p-6 md:p-8 rounded-xl shadow-sm border border-border-subtle">
+            <div className="mb-6">
+              <h3 className="text-lg font-serif text-text-primary mb-2">Pricing & Market Value</h3>
+              <p className="text-sm text-text-secondary">Comparing your assumed price against the modelled business requirements.</p>
+            </div>
+
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-4 bg-brand-50/50 rounded-lg border border-brand-100">
+                  <p className="text-[10px] font-bold text-brand-700 uppercase tracking-wider mb-1">Your Assumed Price</p>
+                  <p className="text-xl font-serif text-brand-900">₹{pricingIntelligence.userAssumedPricePerUnit.toFixed(2)} / L</p>
+                  <span className="inline-block mt-2 text-[9px] px-1.5 py-0.5 bg-white border border-border-subtle rounded text-slate-500 uppercase tracking-wider">User Input</span>
+                </div>
+                <div className="p-4 bg-surface-subtle rounded-lg border border-border-subtle">
+                  <p className="text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-1">Operating Break-Even</p>
+                  <p className="text-xl font-serif text-text-primary">₹{pricingIntelligence.operatingBreakEvenPricePerUnit.toFixed(2)} / L</p>
+                  <span className="inline-block mt-2 text-[9px] px-1.5 py-0.5 bg-white border border-border-subtle rounded text-slate-500 uppercase tracking-wider">Calculated</span>
+                </div>
+                <div className="p-4 bg-surface-subtle rounded-lg border border-border-subtle">
+                  <p className="text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-1">Debt-Service Break-Even</p>
+                  <p className="text-xl font-serif text-text-primary">₹{pricingIntelligence.debtServiceBreakEvenPricePerUnit.toFixed(2)} / L</p>
+                  <span className="inline-block mt-2 text-[9px] px-1.5 py-0.5 bg-white border border-border-subtle rounded text-slate-500 uppercase tracking-wider">Calculated</span>
+                </div>
+                <div className="p-4 bg-amber-50/30 rounded-lg border border-amber-100">
+                  <p className="text-[10px] font-bold text-amber-700 uppercase tracking-wider mb-1">Stress-Case Break-Even</p>
+                  <p className="text-xl font-serif text-amber-900">
+                    {pricingIntelligence.stressDebtServiceBreakEvenPricePerUnit !== null 
+                      ? `₹${pricingIntelligence.stressDebtServiceBreakEvenPricePerUnit.toFixed(2)} / L` 
+                      : 'N/A'}
+                  </p>
+                  <span className="inline-block mt-2 text-[9px] px-1.5 py-0.5 bg-white border border-border-subtle rounded text-slate-500 uppercase tracking-wider">Calculated</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 bg-surface-subtle rounded-lg border border-border-subtle">
+                  <p className="text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-2">Local Market Reference</p>
+                  {pricingIntelligence.localMarketReference.status === "DATA_UNAVAILABLE" ? (
+                    <div>
+                      <p className="text-sm font-medium text-text-primary mb-1">Data unavailable</p>
+                      <p className="text-xs text-text-secondary">{pricingIntelligence.localMarketReference.message}</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-xl font-serif text-text-primary mb-1">
+                        ₹{pricingIntelligence.localMarketReference.pricePerUnit?.toFixed(2)} / L
+                      </p>
+                      <p className="text-xs text-text-secondary">Source: {pricingIntelligence.localMarketReference.source}</p>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="p-4 bg-surface-subtle rounded-lg border border-border-subtle">
+                  <p className="text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-2">Regional Purchasing Power</p>
+                  {pricingIntelligence.purchasingPowerReference.status === "DATA_UNAVAILABLE" ? (
+                    <div>
+                      <p className="text-sm font-medium text-text-primary mb-1">Data unavailable</p>
+                      <p className="text-xs text-text-secondary">{pricingIntelligence.purchasingPowerReference.message}</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-xl font-serif text-text-primary mb-1">
+                        {pricingIntelligence.purchasingPowerReference.value}
+                      </p>
+                      <p className="text-xs text-text-secondary">Source: {pricingIntelligence.purchasingPowerReference.source}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-4 bg-blue-50/50 rounded-lg border border-blue-100">
+                <h4 className="text-[10px] font-bold text-blue-800 uppercase tracking-wider mb-1">What this means</h4>
+                <p className="text-sm text-blue-900">{pricingIntelligence.summary}</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t border-border-subtle">
+                <div>
+                  <h4 className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block mb-2">Validate before investing</h4>
+                  <ul className="text-xs text-text-secondary leading-relaxed list-disc pl-4 space-y-1">
+                    {pricingIntelligence.validationActions.map((act, idx) => (
+                      <li key={idx}>{act}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-2">Limitations</h4>
+                  <ul className="text-xs text-text-secondary leading-relaxed list-disc pl-4 space-y-1">
+                    {pricingIntelligence.limitations.map((lim, idx) => (
+                      <li key={idx}>{lim}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* SECTION F: WHY THIS DECISION & RISKS */}
         <section className="bg-white p-6 md:p-8 rounded-xl shadow-sm border border-border-subtle">

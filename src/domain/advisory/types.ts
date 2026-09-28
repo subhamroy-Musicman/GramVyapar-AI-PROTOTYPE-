@@ -73,6 +73,7 @@ export interface AdvisoryInput {
     threatAnalysis?: any;
     competitorMapping?: any;
   };
+  pricingIntelligence?: any;
 }
 
 export interface AdvisoryResult {

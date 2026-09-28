@@ -23,15 +23,17 @@ describe('Advisory Input Mapper', () => {
       project: { projectCost: 405000 }, 
       funding: { effectiveOwnContribution: 100000, fundingGap: 305000 }, 
       financing: { category: "MUDRA_KISHORE" }, 
-      economics: { annualMilkRevenue: 756000, annualOperatingExpenses: 301750, operatingSurplus: 454250 }, 
+      economics: { annualMilkProduction: 10000, annualMilkRevenue: 756000, annualOperatingExpenses: 301750, operatingSurplus: 454250 }, 
       repayment: { annualRepaymentBurden: 63058 }, 
+      debt: { annualExistingDebtBurden: 0 },
       cashFlow: { postNewLoanRepaymentCash: 391192, netCashAfterExistingDebt: 391192 } 
     } as any;
     const fakeStress = { 
       scenario: { label: "Downside", milkYieldChangePct: -20, feedCostChangePct: 15 }, 
       stressed: { 
-        economics: { annualMilkRevenue: 604800, annualOperatingExpenses: 342813, operatingSurplus: 261988 }, 
-        repayment: { annualRepaymentBurden: 63058 }, 
+        economics: { annualMilkProduction: 8000, annualMilkRevenue: 604800, annualOperatingExpenses: 342813, operatingSurplus: 261988 }, 
+        repayment: { annualRepaymentBurden: 63058 },
+        debt: { annualExistingDebtBurden: 0 },
         cashFlow: { postNewLoanRepaymentCash: 198929, netCashAfterExistingDebt: 198929 } 
       } 
     } as any;
