@@ -25,7 +25,7 @@ export function calculateFinancialAssessment(
   const funding = calculateFundingStructure(entrepreneur.marginCapital, project.projectCost);
   
   // 4. Financing Routing
-  const financing = routeFinancing(funding.fundingGap);
+  const financing = routeFinancing(project.projectCost, funding.fundingGap);
   
   // 5. Repayment Simulation (Even if outside prototype range, simulate if possible, but keep explicit category)
   const repayment = calculateRepayment(funding.fundingGap, financing.category);

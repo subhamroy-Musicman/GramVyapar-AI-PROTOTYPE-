@@ -68,7 +68,7 @@ export function evaluateDecision(stressAssessment: StressAssessment): DecisionRe
   // --- B. MODIFY (Weak Resilience or Outside Range) ---
 
   // 1. Outside Prototype Range
-  if (metricsUsed.financingCategory === "OUTSIDE_PROTOTYPE_RANGE") {
+  if (metricsUsed.financingCategory === "OUTSIDE_SUPPORTED_SCHEME_RANGE") {
     // Economics are positive (we passed the HIGH_RISK checks), but financing is too large
     status = "MODIFY";
     primaryReason = "FINANCING_OUTSIDE_PROTOTYPE_RANGE";

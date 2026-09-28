@@ -1,0 +1,1 @@
+﻿const fs = require('fs'); let c = fs.readFileSync('src/domain/decision/decision-engine.ts', 'utf8'); c = c.replace(/\x22OUTSIDE_PROTOTYPE_RANGE\x22/g, '\x22OUTSIDE_SUPPORTED_SCHEME_RANGE\x22'); fs.writeFileSync('src/domain/decision/decision-engine.ts', c);

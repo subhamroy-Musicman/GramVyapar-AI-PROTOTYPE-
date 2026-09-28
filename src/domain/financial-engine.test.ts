@@ -2,7 +2,7 @@
 import { describe, it, expect } from "vitest";
 import { calculateFinancialAssessment } from "./finance/financial-assessment";
 import { DairyPlanInputs } from "./dairy/types";
-import { FINANCE_CONFIG } from "../config/finance";
+import { SCHEMES, FINANCE_CONFIG } from "../config/finance";
 
 describe("Deterministic Financial Engine", () => {
   const getBaseDairyPlan = (): DairyPlanInputs => ({
@@ -127,27 +127,11 @@ describe("Deterministic Financial Engine", () => {
       return calculateFinancialAssessment(ent, dp).financing;
     };
 
-    it("14. fundingGap = 0 -> SELF_FUNDED", () => {
-      expect(route(0).category).toBe("SELF_FUNDED");
-    });
-    it("15. fundingGap = 150000 -> MICRO_LOAN", () => {
-      expect(route(150000).category).toBe("MICRO_LOAN");
-    });
-    it("16. fundingGap = 150001 -> SMALL_ENTERPRISE_FINANCE", () => {
-      expect(route(150001).category).toBe("SMALL_ENTERPRISE_FINANCE");
-    });
-    it("17. fundingGap = 500000 -> SMALL_ENTERPRISE_FINANCE", () => {
-      expect(route(500000).category).toBe("SMALL_ENTERPRISE_FINANCE");
-    });
-    it("18. fundingGap = 500001 -> TERM_LOAN", () => {
-      expect(route(500001).category).toBe("TERM_LOAN");
-    });
-    it("19. fundingGap = 1000000 -> TERM_LOAN", () => {
-      expect(route(1000000).category).toBe("TERM_LOAN");
-    });
-    it("20. fundingGap = 1000001 -> OUTSIDE_PROTOTYPE_RANGE", () => {
-      expect(route(1000001).category).toBe("OUTSIDE_PROTOTYPE_RANGE");
-    });
+    it('14. projectCost = 0 -> MICRO_FINANCE_SCHEME (edge case)', () => { expect(route(0).category).toBe('MICRO_FINANCE_SCHEME'); });
+    it('15. projectCost = 140000 -> MICRO_FINANCE_SCHEME', () => { expect(route(140000).category).toBe('MICRO_FINANCE_SCHEME'); expect(route(140000).schemeMaximumLoan).toBe(125000); });
+    it('16. projectCost = 140001 -> TERM_LOAN_SCHEME', () => { expect(route(140001).category).toBe('TERM_LOAN_SCHEME'); });
+    it('17. projectCost = 5000000 -> TERM_LOAN_SCHEME', () => { expect(route(5000000).category).toBe('TERM_LOAN_SCHEME'); expect(route(5000000).schemeMaximumLoan).toBe(4500000); });
+    it('18. projectCost = 5000001 -> OUTSIDE_SUPPORTED_SCHEME_RANGE', () => { expect(route(5000001).category).toBe('OUTSIDE_SUPPORTED_SCHEME_RANGE'); });
   });
 
   describe("Repayment", () => {
@@ -160,10 +144,10 @@ describe("Deterministic Financial Engine", () => {
     };
 
     it("21. standard principal & 24. moratorium handling & 25. quarterly annualization", () => {
-      const rep = getRepay(100000);
+      const rep = getRepay(200000); // 200k routes to TERM_LOAN_SCHEME
       // Moratorium is 6 months (0.5 years). 8% interest.
       // Capitalized principal = 100000 * (1 + 0.08 * 0.5) = 104000
-      expect(rep.capitalizedPrincipal).toBe(104000);
+      expect(rep.capitalizedPrincipal).toBe(208000);
       // Tenure is 7 years, minus 0.5 = 6.5 years of repayment. 4 periods/year = 26 periods.
       expect(rep.repaymentPeriods).toBe(26);
       expect(rep.periodicRate).toBe(0.02); // 8% / 4
@@ -171,27 +155,27 @@ describe("Deterministic Financial Engine", () => {
       // Amortization: P = 104000, r = 0.02, n = 26
       // PMT = (104000 * 0.02 * 1.02^26) / (1.02^26 - 1)
       const factor = Math.pow(1.02, 26);
-      const expectedPmt = (104000 * 0.02 * factor) / (factor - 1);
+      const expectedPmt = (208000 * 0.02 * factor) / (factor - 1);
       expect(rep.paymentPerQuarter).toBeCloseTo(expectedPmt, 2);
       expect(rep.annualRepaymentBurden).toBeCloseTo(expectedPmt * 4, 2);
     });
 
     it("22. zero-interest case", () => {
-      const originalRate = FINANCE_CONFIG.annualInterestRate;
-      FINANCE_CONFIG.annualInterestRate = 0;
+      const originalRate = SCHEMES.TERM_LOAN_SCHEME.annualInterestRate;
+      SCHEMES.TERM_LOAN_SCHEME.annualInterestRate = 0;
       
-      const rep = getRepay(100000); // Principal
+      const rep = getRepay(200000); // 200k routes to TERM_LOAN_SCHEME // Principal
       
       // Moratorium logic applies but with 0 interest: Capitalized = 100000
-      expect(rep.capitalizedPrincipal).toBe(100000);
+      expect(rep.capitalizedPrincipal).toBe(200000);
       expect(rep.periodicRate).toBe(0);
       
       // Tenure is 6.5 years -> 26 periods
       // paymentPerPeriod = principal / periods
-      expect(rep.paymentPerQuarter).toBe(100000 / 26);
+      expect(rep.paymentPerQuarter).toBe(200000 / 26);
       
       // totalRepayment = paymentPerPeriod * periods = 100000
-      expect(rep.totalRepayment).toBe(100000);
+      expect(rep.totalRepayment).toBe(200000);
       expect(rep.totalInterest).toBe(0);
       
       // Ensure no NaNs or Infinity
@@ -199,7 +183,7 @@ describe("Deterministic Financial Engine", () => {
       expect(Number.isFinite(rep.totalRepayment)).toBe(true);
       
       // Restore config
-      FINANCE_CONFIG.annualInterestRate = originalRate;
+      SCHEMES.TERM_LOAN_SCHEME.annualInterestRate = originalRate;
     });
 
     it("23. zero principal", () => {
@@ -248,7 +232,7 @@ describe("Deterministic Financial Engine", () => {
       expect(result.funding.fundingGap).toBe(305000);
       
       // Expected Financing Category = SMALL_ENTERPRISE_FINANCE
-      expect(result.financing.category).toBe("SMALL_ENTERPRISE_FINANCE");
+      expect(result.financing.category).toBe("TERM_LOAN_SCHEME");
       
       // Capitalized Principal = 305000 * (1 + 0.08 * 0.5) = 317200
       expect(result.repayment.capitalizedPrincipal).toBe(317200);
@@ -270,18 +254,18 @@ describe("Deterministic Financial Engine", () => {
     it("Calculates 11-animal case securely without clamping or NaN", () => {
       const dp = getBaseDairyPlan();
       dp.animalCount = 11;
-      dp.animalPurchaseCost = 150000;
+      dp.animalPurchaseCost = 500000;
       
       const ent = { marginCapital: 100000, existingDebt: 5000 };
       
       const result = calculateFinancialAssessment(ent, dp);
       
       // 11 * 150000 = 16.5 Lakhs. Total project will definitely exceed 10L.
-      expect(result.project.animalPurchaseTotal).toBe(1650000);
+      expect(result.project.animalPurchaseTotal).toBe(5500000);
       
       // Gap > 10L -> OUTSIDE_PROTOTYPE_RANGE
-      expect(result.funding.fundingGap).toBeGreaterThan(1000000);
-      expect(result.financing.category).toBe("OUTSIDE_PROTOTYPE_RANGE");
+      expect(result.funding.fundingGap).toBeGreaterThan(5000000);
+      expect(result.financing.category).toBe("OUTSIDE_SUPPORTED_SCHEME_RANGE");
       expect(result.financing.withinPrototypeRange).toBe(false);
       
       // Economics should remain pristine, uncorrupted, and perfectly calculated
@@ -303,4 +287,5 @@ describe("Deterministic Financial Engine", () => {
     });
   });
 });
+
 

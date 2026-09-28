@@ -1,47 +1,40 @@
-import { FINANCE_CONFIG } from "../../config/finance";
+import { SCHEMES, SchemeId } from "../../config/finance";
 import { FinancingResult } from "./types";
 
-export function routeFinancing(fundingGap: number): FinancingResult {
-  if (fundingGap <= 0) {
+export function routeFinancing(projectCost: number, fundingGap: number): FinancingResult {
+  if (projectCost <= SCHEMES.MICRO_FINANCE_SCHEME.projectCostMax) {
+    const maxLoanAllowed = Math.min(
+      projectCost * SCHEMES.MICRO_FINANCE_SCHEME.financingPercentage, 
+      SCHEMES.MICRO_FINANCE_SCHEME.maxLoan
+    );
     return {
-      category: "SELF_FUNDED",
+      category: "MICRO_FINANCE_SCHEME",
       fundingRequirement: fundingGap,
       withinPrototypeRange: true,
-      reasonCode: "Funding requirement is zero. Project is entirely self-funded."
+      schemeMaximumLoan: maxLoanAllowed,
+      reasonCode: `Project Cost of ₹${projectCost} routes to Micro Finance Scheme.`
     };
   }
-  
-  if (fundingGap <= FINANCE_CONFIG.thresholds.microLoan) {
+
+  if (projectCost <= SCHEMES.TERM_LOAN_SCHEME.projectCostMax) {
+    const maxLoanAllowed = Math.min(
+      projectCost * SCHEMES.TERM_LOAN_SCHEME.financingPercentage,
+      SCHEMES.TERM_LOAN_SCHEME.maxLoan
+    );
     return {
-      category: "MICRO_LOAN",
+      category: "TERM_LOAN_SCHEME",
       fundingRequirement: fundingGap,
       withinPrototypeRange: true,
-      reasonCode: `Funding requirement of ₹${fundingGap} falls within the prototype Micro Loan range (<= ₹1.5L).`
+      schemeMaximumLoan: maxLoanAllowed,
+      reasonCode: `Project Cost of ₹${projectCost} routes to Term Loan Scheme.`
     };
   }
-  
-  if (fundingGap <= FINANCE_CONFIG.thresholds.smallEnterprise) {
-    return {
-      category: "SMALL_ENTERPRISE_FINANCE",
-      fundingRequirement: fundingGap,
-      withinPrototypeRange: true,
-      reasonCode: `Funding requirement of ₹${fundingGap} falls within the prototype Small Enterprise Finance range (<= ₹5L).`
-    };
-  }
-  
-  if (fundingGap <= FINANCE_CONFIG.thresholds.termLoan) {
-    return {
-      category: "TERM_LOAN",
-      fundingRequirement: fundingGap,
-      withinPrototypeRange: true,
-      reasonCode: `Funding requirement of ₹${fundingGap} falls within the prototype Term Loan range (<= ₹10L).`
-    };
-  }
-  
+
   return {
-    category: "OUTSIDE_PROTOTYPE_RANGE",
+    category: "OUTSIDE_SUPPORTED_SCHEME_RANGE",
     fundingRequirement: fundingGap,
     withinPrototypeRange: false,
-    reasonCode: `Funding requirement of ₹${fundingGap} exceeds prototype term loan limit (> ₹10L).`
+    schemeMaximumLoan: 0,
+    reasonCode: `Project Cost of ₹${projectCost} exceeds the supported Term Loan Scheme range (> ₹50L).`
   };
 }

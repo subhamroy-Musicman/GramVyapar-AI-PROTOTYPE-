@@ -161,7 +161,7 @@ describe("Stress Testing Engine and Deterministic Decision Engine", () => {
       const stressAssmnt = calculateStressAssessment(ent, dp, getPrimaryScenario());
       const decision = evaluateDecision(stressAssmnt);
 
-      expect(stressAssmnt.base.financing.category).toBe("TERM_LOAN");
+      expect(stressAssmnt.base.financing.category).toBe("TERM_LOAN_SCHEME");
       expect(stressAssmnt.base.financing.withinPrototypeRange).toBe(true);
 
       expect(decision.status).toBe("HIGH_RISK");
@@ -171,14 +171,14 @@ describe("Stress Testing Engine and Deterministic Decision Engine", () => {
     it("Case E - Outside Financing Range (Prefer Modify)", () => {
       const dp = getBaseDairyPlan();
       dp.animalCount = 11;
-      dp.animalPurchaseCost = 150000; 
+      dp.animalPurchaseCost = 1500000; dp.milkYieldPerDay = 2000;
       const ent = getBaseEntrepreneur();
       
       const stressAssmnt = calculateStressAssessment(ent, dp, getPrimaryScenario());
       const decision = evaluateDecision(stressAssmnt);
 
       expect(stressAssmnt.base.funding.fundingGap).toBeGreaterThan(1000000);
-      expect(stressAssmnt.base.financing.category).toBe("OUTSIDE_PROTOTYPE_RANGE");
+      expect(stressAssmnt.base.financing.category).toBe("OUTSIDE_SUPPORTED_SCHEME_RANGE");
 
       expect(stressAssmnt.base.cashFlow.netCashAfterExistingDebt).toBeGreaterThan(0);
       expect(decision.status).toBe("MODIFY");

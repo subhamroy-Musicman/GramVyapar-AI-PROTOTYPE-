@@ -96,7 +96,13 @@ export function AssessmentBrief({ data, assessment, stress, decision, onBack, on
               <p className="text-sm font-bold text-brand-900 leading-tight mb-1">
                 {assessment.financing.category.replace(/_/g, ' ')}
               </p>
-              <p className="text-xs text-brand-700/80 font-medium">Prototype Route</p>
+              <p className="text-xs text-brand-700/80 font-medium mb-2">Scheme Router</p>
+              <div className="text-[10px] text-brand-800 space-y-0.5">
+                <p>Interest: {(assessment.repayment.annualInterestRate * 100).toFixed(1)}%</p>
+                <p>Tenure: {assessment.repayment.tenureYears} yrs</p>
+                <p>Moratorium: {assessment.repayment.moratoriumMonths} mos</p>
+                <p>Freq: Quarterly</p>
+              </div>
             </div>
           </div>
           <p className="text-xs text-text-secondary italic">
@@ -315,8 +321,8 @@ export function AssessmentBrief({ data, assessment, stress, decision, onBack, on
               <p>Dairy and financial assumptions entered by the entrepreneur.</p>
             </div>
             <div>
-              <p className="font-bold text-[10px] uppercase tracking-wider mb-1">PROTOTYPE ASSUMPTION</p>
-              <p>8% annual interest, 7-year tenure, 6-month moratorium, quarterly repayment, prototype routing thresholds.</p>
+              <p className="font-bold text-[10px] uppercase tracking-wider mb-1">ROUTING ASSUMPTION</p>
+              <p>Official Scheme Routing based on actual Project Cost limits, applying scheme-specific interest rates and moratoriums.</p>
             </div>
           </div>
           <div className="mt-4 pt-4 border-t border-border-subtle">

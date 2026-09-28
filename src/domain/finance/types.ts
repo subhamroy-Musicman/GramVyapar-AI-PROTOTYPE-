@@ -10,17 +10,20 @@ export interface ProjectCostResult {
   projectCost: number;
 }
 
-export interface FundingResult {
-  availableCapital: number;
-  effectiveOwnContribution: number;
-  fundingGap: number;
-}
-
 export interface FinancingResult {
   category: FinancingCategory;
   fundingRequirement: number;
   withinPrototypeRange: boolean;
   reasonCode: string;
+  schemeMaximumLoan: number;
+}
+
+export interface FundingResult {
+  availableCapital: number;
+  effectiveOwnContribution: number;
+  fundingGap: number;
+  maximumFeasibleProjectCapacity: number;
+  maximumSchemeFinancingCapacity: number;
 }
 
 export interface RepaymentResult {

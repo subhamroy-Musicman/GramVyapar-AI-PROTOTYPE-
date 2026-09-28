@@ -1,8 +1,8 @@
-import { FINANCE_CONFIG, FinancingCategory } from "../../config/finance";
+import { FINANCE_CONFIG, FinancingCategory, SCHEMES } from "../../config/finance";
 import { RepaymentResult } from "./types";
 
 export function calculateRepayment(principal: number, category: FinancingCategory): RepaymentResult {
-  if (principal <= 0 || category === "SELF_FUNDED") {
+  if (principal <= 0) {
     return {
       originalPrincipal: 0,
       capitalizedPrincipal: 0,
@@ -18,14 +18,21 @@ export function calculateRepayment(principal: number, category: FinancingCategor
     };
   }
 
+  let schemeConfig;
+  if (category === "MICRO_FINANCE_SCHEME") {
+    schemeConfig = SCHEMES.MICRO_FINANCE_SCHEME;
+  } else {
+    schemeConfig = SCHEMES.TERM_LOAN_SCHEME; // Use TERM_LOAN_SCHEME as default for simulation if outside range
+  }
+
   // Moratorium interpretation: interest during moratorium is capitalized into principal
-  const moratoriumYears = FINANCE_CONFIG.moratoriumMonths / 12;
-  const capitalizedPrincipal = principal * (1 + FINANCE_CONFIG.annualInterestRate * moratoriumYears);
+  const moratoriumYears = schemeConfig.moratoriumMonths / 12;
+  const capitalizedPrincipal = principal * (1 + schemeConfig.annualInterestRate * moratoriumYears);
   
   // Repayment parameters
-  const repaymentYears = FINANCE_CONFIG.tenureYears - moratoriumYears;
+  const repaymentYears = schemeConfig.tenureYears - moratoriumYears;
   const repaymentPeriods = repaymentYears * FINANCE_CONFIG.periodsPerYear;
-  const quarterlyRate = FINANCE_CONFIG.annualInterestRate / FINANCE_CONFIG.periodsPerYear;
+  const quarterlyRate = schemeConfig.annualInterestRate / FINANCE_CONFIG.periodsPerYear;
   
   let paymentPerQuarter = 0;
   if (quarterlyRate === 0) {
@@ -43,10 +50,10 @@ export function calculateRepayment(principal: number, category: FinancingCategor
   return {
     originalPrincipal: principal,
     capitalizedPrincipal,
-    annualInterestRate: FINANCE_CONFIG.annualInterestRate,
+    annualInterestRate: schemeConfig.annualInterestRate,
     periodicRate: quarterlyRate,
-    moratoriumMonths: FINANCE_CONFIG.moratoriumMonths,
-    tenureYears: FINANCE_CONFIG.tenureYears,
+    moratoriumMonths: schemeConfig.moratoriumMonths,
+    tenureYears: schemeConfig.tenureYears,
     repaymentPeriods,
     paymentPerQuarter,
     annualRepaymentBurden,
